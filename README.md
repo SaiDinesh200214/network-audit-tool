@@ -151,10 +151,10 @@ Unauthorized network scanning may be **illegal** in your country.
 ## 👤 Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
+- GitHub: [@SaiDinesh200214](https://github.com/SaiDinesh200214)
 
 ---
 
 ## ⭐ Show Your Support
 
-If this project helped you, please give it a ⭐ on GitHub!
+If this project helped you, please give it a ⭐ on 

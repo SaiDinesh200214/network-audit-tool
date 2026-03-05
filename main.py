@@ -10,7 +10,9 @@ os.system('cls' if os.name == 'nt' else 'clear')
 
 print("\n" + "=" * 65)
 print("   🛡️   HOME NETWORK SECURITY AUDIT TOOL")
-print("   Version 1.0 | By github.com/yourusername")
+print("   Version 1.0 | By SaiDinesh Andekar")
+print("   📧 saidineshandekar1402@gmail.com")
+print("   🐙 github.com/SaiDinesh200214")
 print("=" * 65)
 print("""
   This tool will:
@@ -39,6 +41,7 @@ input("\n  Press Enter to begin scan...")
 # ─── HEADER ─────────────────────────────────────
 print("\n" + "=" * 65)
 print("   🛡️   HOME NETWORK SECURITY AUDIT TOOL")
+print("   Created by SaiDinesh Andekar | github.com/SaiDinesh200214")
 print("=" * 65)
 print(f"   📅 Scan Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("=" * 65)
