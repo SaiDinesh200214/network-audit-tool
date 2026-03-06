@@ -1,3 +1,22 @@
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+
+# Scan output — personal data, never push
+scan_logs/
 *.pdf
+*.json
+
+# Auto-generated topology (rebuilt on every scan)
+topology.html
+
+# Windows junk
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# Mac junk
+.DS_Store

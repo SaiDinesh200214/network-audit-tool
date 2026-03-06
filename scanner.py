@@ -1,356 +1,449 @@
-# scanner.py
-# Home Network Security Audit Tool — Scanner Module
+# scanner.py — NetAudit Pro Network Scanner
+# Cross-platform: Windows 10/11, Linux, macOS
+# Methods auto-select based on platform.system()
 
-from scapy.all import ARP, Ether, srp
-import socket
-import concurrent.futures
+import socket, subprocess, platform, concurrent.futures, re
 
-# ─── MODULE 1 — DEVICE SCANNER ──────────────────
+SYSTEM = platform.system().lower()   # "windows" | "linux" | "darwin"
 
-def get_my_ip():
-    """Get our own IP address on the network"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    ip = s.getsockname()[0]
-    s.close()
-    return ip
+VULN_DB = {
+    21:   {"service":"FTP",       "risk":"HIGH",     "cvss":7.5,  "desc":"File Transfer Protocol",
+           "hacker_can":["Brute force credentials","Anonymous login exploit","Sniff credentials in transit"],
+           "fix":["Disable FTP, use SFTP instead","Block port 21 on firewall","Enforce strong passwords"]},
+    22:   {"service":"SSH",       "risk":"MEDIUM",   "cvss":5.0,  "desc":"Secure Shell - remote access",
+           "hacker_can":["Brute force SSH password","Exploit weak SSH keys","Dictionary attacks"],
+           "fix":["Use SSH key authentication","Disable root login","Change default port"]},
+    23:   {"service":"Telnet",    "risk":"CRITICAL", "cvss":9.8,  "desc":"Telnet - completely unencrypted",
+           "hacker_can":["Capture all traffic in plaintext","Steal credentials instantly","Session hijacking"],
+           "fix":["Disable Telnet immediately","Use SSH instead","Block port 23 on firewall"]},
+    25:   {"service":"SMTP",      "risk":"MEDIUM",   "cvss":5.3,  "desc":"Email server",
+           "hacker_can":["Open relay spam abuse","Email enumeration"],
+           "fix":["Require SMTP authentication","Configure SPF/DKIM/DMARC"]},
+    53:   {"service":"DNS",       "risk":"LOW",      "cvss":2.5,  "desc":"Domain Name System",
+           "hacker_can":["DNS cache poisoning if misconfigured"],
+           "fix":["Keep DNS software updated","Enable DNSSEC"]},
+    80:   {"service":"HTTP",      "risk":"MEDIUM",   "cvss":5.0,  "desc":"Unencrypted web server",
+           "hacker_can":["Intercept web traffic","Inject malicious content","Credential theft"],
+           "fix":["Redirect to HTTPS","Install SSL certificate","Use HSTS headers"]},
+    110:  {"service":"POP3",      "risk":"MEDIUM",   "cvss":4.8,  "desc":"Email retrieval unencrypted",
+           "hacker_can":["Intercept email credentials","Read email in transit"],
+           "fix":["Use POP3S (port 995)","Enforce TLS encryption"]},
+    135:  {"service":"RPC",       "risk":"CRITICAL", "cvss":9.8,  "desc":"Remote Procedure Call",
+           "hacker_can":["Exploit RPC (Blaster worm)","Execute remote code","Crash system remotely"],
+           "fix":["Block port 135 on firewall","Keep Windows updated","Disable unused RPC services"]},
+    139:  {"service":"NetBIOS",   "risk":"HIGH",     "cvss":8.1,  "desc":"Legacy Windows file sharing",
+           "hacker_can":["Enumerate users and shares","Exploit null sessions","Lateral movement attacks"],
+           "fix":["Disable NetBIOS over TCP/IP","Block ports 137-139","Use modern file sharing"]},
+    143:  {"service":"IMAP",      "risk":"MEDIUM",   "cvss":4.8,  "desc":"Internet Message Access Protocol",
+           "hacker_can":["Intercept email content","Credential theft in transit"],
+           "fix":["Use IMAPS (port 993)","Enforce TLS"]},
+    443:  {"service":"HTTPS",     "risk":"LOW",      "cvss":1.0,  "desc":"Encrypted web server",
+           "hacker_can":["Possible SSL misconfiguration"],
+           "fix":["Keep SSL certificates updated","Use TLS 1.3"]},
+    445:  {"service":"SMB",       "risk":"CRITICAL", "cvss":10.0, "desc":"Server Message Block",
+           "hacker_can":["Deploy WannaCry/NotPetya ransomware","Access shared files without auth","Execute remote code (EternalBlue)"],
+           "fix":["Block port 445 on firewall immediately","Disable SMBv1","Keep Windows fully updated"]},
+    1433: {"service":"MSSQL",     "risk":"HIGH",     "cvss":8.5,  "desc":"Microsoft SQL Server",
+           "hacker_can":["SQL injection attacks","Brute force SA account","Data exfiltration"],
+           "fix":["Restrict to trusted IPs only","Use strong SA password","Enable SQL Server Audit"]},
+    3306: {"service":"MySQL",     "risk":"HIGH",     "cvss":8.0,  "desc":"MySQL Database Server",
+           "hacker_can":["Brute force root account","SQL injection","Database dumping"],
+           "fix":["Bind to localhost only","Use strong passwords","Disable remote root login"]},
+    3389: {"service":"RDP",       "risk":"CRITICAL", "cvss":9.8,  "desc":"Remote Desktop Protocol",
+           "hacker_can":["Brute force Windows password","Exploit BlueKeep","Take complete desktop control","Install ransomware"],
+           "fix":["Disable RDP if not needed","Use VPN before RDP","Enable Network Level Authentication"]},
+    5432: {"service":"PostgreSQL","risk":"HIGH",     "cvss":7.8,  "desc":"PostgreSQL Database",
+           "hacker_can":["Brute force postgres account","Execute OS commands via COPY TO/FROM"],
+           "fix":["Restrict pg_hba.conf access","Use strong passwords","Bind to localhost"]},
+    6379: {"service":"Redis",     "risk":"CRITICAL", "cvss":9.8,  "desc":"Redis Cache - often no auth",
+           "hacker_can":["Access all cached data without password","Write files to server","Execute remote code"],
+           "fix":["Set requirepass in redis.conf","Bind to localhost","Never expose to internet"]},
+    8080: {"service":"HTTP-Alt",  "risk":"MEDIUM",   "cvss":4.5,  "desc":"Alternate HTTP port",
+           "hacker_can":["Intercept unencrypted traffic","Access web admin panels"],
+           "fix":["Use HTTPS instead","Restrict access with firewall"]},
+    8443: {"service":"HTTPS-Alt", "risk":"LOW",      "cvss":1.0,  "desc":"Alternate HTTPS port",
+           "hacker_can":["Possible SSL misconfiguration"],
+           "fix":["Keep certificates updated"]},
+    27017:{"service":"MongoDB",   "risk":"CRITICAL", "cvss":9.8,  "desc":"MongoDB - often no auth",
+           "hacker_can":["Access all databases without credentials","Delete or modify all data","Export entire database"],
+           "fix":["Enable MongoDB authentication","Bind to localhost","Never expose to internet"]},
+}
+PORTS_TO_SCAN = list(VULN_DB.keys())
 
+
+# ── OS DETECTION ──────────────────────────────────────────────────────────────
+def detect_os(ip):
+    try:
+        if SYSTEM == "windows":
+            cmd = ["ping", "-n", "1", "-w", "1000", ip]
+        else:
+            cmd = ["ping", "-c", "1", "-W", "1", ip]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=4)
+        ttl = None
+        for word in result.stdout.split():
+            if "ttl=" in word.lower():
+                try:
+                    ttl = int(word.lower().split("ttl=")[1].rstrip("."))
+                    break
+                except ValueError:
+                    pass
+        if ttl is None:
+            return {"os": "Unknown", "ttl": None, "confidence": "Low"}
+        if ttl <= 64:
+            return {"os": "Linux / Unix / Android", "ttl": ttl, "confidence": "Medium"}
+        elif ttl <= 128:
+            return {"os": "Windows", "ttl": ttl, "confidence": "Medium"}
+        else:
+            return {"os": "Network Device (Router/Switch)", "ttl": ttl, "confidence": "Medium"}
+    except Exception:
+        return {"os": "Unknown", "ttl": None, "confidence": "Low"}
+
+
+# ── GET REAL LOCAL IP ─────────────────────────────────────────────────────────
+def get_real_local_ip():
+    candidates = []
+
+    # Method 1: UDP route trick (works on all platforms)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        if not ip.startswith(("127.", "169.254")):
+            candidates.append(ip)
+    except Exception:
+        pass
+
+    # Method 2: Hostname resolution (all platforms)
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            ip = info[4][0]
+            if not ip.startswith(("127.", "169.254", "::")) and ":" not in ip:
+                candidates.append(ip)
+    except Exception:
+        pass
+
+    # Method 3: Platform-specific IP tools
+    if SYSTEM == "windows":
+        try:
+            result = subprocess.run(["ipconfig"], capture_output=True, text=True, timeout=5)
+            for line in result.stdout.split("\n"):
+                line = line.strip()
+                if "IPv4" in line and ":" in line:
+                    ip = line.split(":")[-1].strip()
+                    if not ip.startswith(("169.254", "127.")):
+                        candidates.append(ip)
+        except Exception:
+            pass
+    elif SYSTEM == "linux":
+        try:
+            result = subprocess.run(["ip", "addr", "show"], capture_output=True, text=True, timeout=5)
+            for match in re.findall(r"inet (\d+\.\d+\.\d+\.\d+)", result.stdout):
+                if not match.startswith(("127.", "169.254")):
+                    candidates.append(match)
+        except Exception:
+            pass
+    elif SYSTEM == "darwin":
+        try:
+            result = subprocess.run(["ifconfig"], capture_output=True, text=True, timeout=5)
+            for match in re.findall(r"inet (\d+\.\d+\.\d+\.\d+)", result.stdout):
+                if not match.startswith(("127.", "169.254")):
+                    candidates.append(match)
+        except Exception:
+            pass
+
+    for ip in candidates:
+        if ip.startswith(("192.168.", "10.", "172.")):
+            return ip
+    for ip in candidates:
+        if not ip.startswith("169.254"):
+            return ip
+    try:
+        return socket.gethostbyname(socket.gethostname())
+    except Exception:
+        return "127.0.0.1"
+
+
+# ── PING HELPER ───────────────────────────────────────────────────────────────
+def _ping(ip):
+    try:
+        if SYSTEM == "windows":
+            r = subprocess.run(["ping", "-n", "1", "-w", "500", ip], capture_output=True, timeout=2)
+        else:
+            r = subprocess.run(["ping", "-c", "1", "-W", "1", ip], capture_output=True, timeout=2)
+        return ip if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
+# ── MAC FROM ARP TABLE ────────────────────────────────────────────────────────
+def _get_mac_arp_table(ip):
+    """Windows uses dashes (aa-bb-cc), Linux/Mac use colons (aa:bb:cc)."""
+    try:
+        if SYSTEM == "windows":
+            r = subprocess.run(["arp", "-a", ip], capture_output=True, text=True, timeout=3)
+            for line in r.stdout.split("\n"):
+                if ip in line:
+                    for part in line.split():
+                        if re.match(r"^([0-9a-f]{2}-){5}[0-9a-f]{2}$", part.lower()):
+                            return part.replace("-", ":").lower()
+        else:
+            r = subprocess.run(["arp", "-n", ip], capture_output=True, text=True, timeout=3)
+            for line in r.stdout.split("\n"):
+                if ip in line:
+                    for part in line.split():
+                        if re.match(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$", part.lower()):
+                            return part.lower()
+    except Exception:
+        pass
+    return "00:00:00:00:00:00"
+
+
+# ── PARSE FULL ARP TABLE ──────────────────────────────────────────────────────
+def _parse_arp_table():
+    devices   = []
+    skip_pfx  = ("224.", "239.", "255.", "169.254", "127.", "0.")
+    skip_macs = {"ff:ff:ff:ff:ff:ff", "00:00:00:00:00:00"}
+    seen_ips  = set()
+
+    def _add(ip, mac):
+        seg = ip.split(".")
+        if len(seg) != 4:
+            return
+        try:
+            nums = [int(s) for s in seg]
+            if not all(0 <= n <= 255 for n in nums) or nums[3] in (0, 255):
+                return
+        except ValueError:
+            return
+        if any(ip.startswith(s) for s in skip_pfx):
+            return
+        if mac in skip_macs or ip in seen_ips:
+            return
+        seen_ips.add(ip)
+        devices.append({"ip": ip, "mac": mac})
+
+    if SYSTEM == "windows":
+        try:
+            r = subprocess.run(["arp", "-a"], capture_output=True, text=True, timeout=5)
+            for line in r.stdout.split("\n"):
+                parts = line.split()
+                if len(parts) < 2:
+                    continue
+                ip = parts[0].strip("()")
+                mac_raw = parts[1] if len(parts) > 1 else ""
+                if re.match(r"^([0-9a-f]{2}-){5}[0-9a-f]{2}$", mac_raw.lower()):
+                    _add(ip, mac_raw.replace("-", ":").lower())
+        except Exception:
+            pass
+
+    elif SYSTEM == "linux":
+        # arp -n
+        try:
+            r = subprocess.run(["arp", "-n"], capture_output=True, text=True, timeout=5)
+            for line in r.stdout.split("\n"):
+                parts = line.split()
+                if not parts:
+                    continue
+                ip = parts[0]
+                for part in parts:
+                    if re.match(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$", part.lower()):
+                        _add(ip, part.lower())
+                        break
+        except Exception:
+            pass
+        # ip neigh (modern Linux — more complete)
+        try:
+            r = subprocess.run(["ip", "neigh"], capture_output=True, text=True, timeout=5)
+            for line in r.stdout.split("\n"):
+                parts = line.split()
+                if not parts:
+                    continue
+                ip = parts[0]
+                for part in parts:
+                    if re.match(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$", part.lower()):
+                        _add(ip, part.lower())
+                        break
+        except Exception:
+            pass
+
+    elif SYSTEM == "darwin":
+        try:
+            r = subprocess.run(["arp", "-a"], capture_output=True, text=True, timeout=5)
+            # macOS: hostname (ip) at mac on interface
+            for line in r.stdout.split("\n"):
+                m_ip  = re.search(r"\((\d+\.\d+\.\d+\.\d+)\)", line)
+                m_mac = re.search(r"(([0-9a-f]{1,2}:){5}[0-9a-f]{1,2})", line.lower())
+                if m_ip and m_mac:
+                    mac = ":".join(p.zfill(2) for p in m_mac.group(1).split(":"))
+                    _add(m_ip.group(1), mac)
+        except Exception:
+            pass
+
+    return devices
+
+
+# ── NETWORK SCANNER ───────────────────────────────────────────────────────────
 def scan_network():
-    """Scan the network and return list of connected devices"""
-    my_ip = get_my_ip()
-    network = my_ip.rsplit('.', 1)[0] + '.1/24'
+    local_ip = get_real_local_ip()
+    print(f"  [SCANNER] Platform  : {platform.system()} {platform.release()}")
+    print(f"  [SCANNER] Local IP  : {local_ip}")
 
-    print(f"\n🔍 Your IP Address : {my_ip}")
-    print(f"🌐 Scanning Network: {network}")
-    print(f"⏳ Please wait...\n")
+    if local_ip.startswith("169.254"):
+        print("  [SCANNER] *** WARNING: APIPA — not properly connected to network! ***")
 
-    arp_request = ARP(pdst=network)
-    broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
-    arp_broadcast = broadcast / arp_request
-
-    answered, _ = srp(arp_broadcast, timeout=3, verbose=False)
+    parts = local_ip.split(".")
+    if len(parts) != 4:
+        return [], local_ip
+    base    = ".".join(parts[:3])
+    network = base + ".0/24"
+    print(f"  [SCANNER] Network   : {network}")
 
     devices = []
-    for sent, received in answered:
-        devices.append({
-            'ip': received.psrc,
-            'mac': received.hwsrc
-        })
 
-    return devices, my_ip
-
-
-# ─── MODULE 2 — PORT SCANNER ────────────────────
-
-COMMON_PORTS = {
-    21:   ("FTP",         "🔴 HIGH",   "File Transfer — often exploited"),
-    22:   ("SSH",         "🔴 HIGH",   "Remote access — brute force target"),
-    23:   ("Telnet",      "🔴 HIGH",   "Unencrypted remote access — dangerous"),
-    25:   ("SMTP",        "🟡 MEDIUM", "Email server"),
-    53:   ("DNS",         "🟢 LOW",    "Domain name resolution"),
-    80:   ("HTTP",        "🟡 MEDIUM", "Unencrypted web traffic"),
-    110:  ("POP3",        "🟡 MEDIUM", "Email retrieval"),
-    135:  ("RPC",         "🔴 HIGH",   "Windows RPC — common attack vector"),
-    139:  ("NetBIOS",     "🔴 HIGH",   "Windows file sharing — exploitable"),
-    143:  ("IMAP",        "🟡 MEDIUM", "Email access"),
-    443:  ("HTTPS",       "🟢 LOW",    "Encrypted web traffic — safe"),
-    445:  ("SMB",         "🔴 HIGH",   "Windows sharing — WannaCry target"),
-    1433: ("MSSQL",       "🔴 HIGH",   "Microsoft SQL Server"),
-    1883: ("MQTT",        "🔴 HIGH",   "IoT protocol — often unsecured"),
-    3306: ("MySQL",       "🔴 HIGH",   "Database — should never be public"),
-    3389: ("RDP",         "🔴 HIGH",   "Remote Desktop — brute force target"),
-    5432: ("PostgreSQL",  "🔴 HIGH",   "Database port"),
-    5900: ("VNC",         "🔴 HIGH",   "Remote desktop — often unencrypted"),
-    8080: ("HTTP-Alt",    "🟡 MEDIUM", "Alternative web port"),
-    8443: ("HTTPS-Alt",   "🟡 MEDIUM", "Alternative secure web port"),
-    27017:("MongoDB",     "🔴 HIGH",   "Database — often left open by mistake"),
-}
-
-def check_port(ip, port, timeout=1):
-    """Check if a single port is open"""
+    # Method 1: Scapy ARP broadcast
+    print("  [SCANNER] Method 1: Scapy ARP broadcast...")
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        result = sock.connect_ex((ip, port))
-        sock.close()
-        return result == 0
-    except:
-        return False
+        from scapy.all import ARP, Ether, srp
+        ether  = Ether(dst="ff:ff:ff:ff:ff:ff")
+        arp    = ARP(pdst=network)
+        result = srp(ether/arp, timeout=3, verbose=0)[0]
+        for _, rcv in result:
+            ip  = rcv.psrc
+            mac = rcv.hwsrc.lower()
+            if not any(d["ip"] == ip for d in devices):
+                devices.append({"ip": ip, "mac": mac})
+        print(f"  [SCANNER] Scapy found: {len(devices)}")
+    except ImportError:
+        print("  [SCANNER] Scapy not installed — skipping (install: pip install scapy)")
+    except Exception as e:
+        print(f"  [SCANNER] Scapy failed: {e}")
+
+    # Method 2: Ping sweep
+    print("  [SCANNER] Method 2: Ping sweep...")
+    all_ips = [f"{base}.{i}" for i in range(1, 255)]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=80) as ex:
+        alive = list(filter(None, ex.map(_ping, all_ips)))
+    for ip in alive:
+        if not any(d["ip"] == ip for d in devices):
+            devices.append({"ip": ip, "mac": _get_mac_arp_table(ip)})
+    print(f"  [SCANNER] Ping found: {len(alive)} alive")
+
+    # Method 3: ARP table
+    print("  [SCANNER] Method 3: ARP table...")
+    added = 0
+    for d in _parse_arp_table():
+        if d["ip"].startswith(base + "."):
+            if not any(e["ip"] == d["ip"] for e in devices):
+                devices.append(d)
+                added += 1
+    print(f"  [SCANNER] ARP table added: {added}")
+
+    # Always include self
+    if not any(d["ip"] == local_ip for d in devices):
+        devices.insert(0, {"ip": local_ip, "mac": _get_mac_arp_table(local_ip) or "00:00:00:00:00:00"})
+
+    # Always check router (.1)
+    router_ip = base + ".1"
+    if not any(d["ip"] == router_ip for d in devices):
+        if _ping(router_ip):
+            devices.append({"ip": router_ip, "mac": _get_mac_arp_table(router_ip)})
+            print(f"  [SCANNER] Router found: {router_ip}")
+
+    # Final cleanup — remove duplicates, broadcast, multicast
+    seen    = set()
+    cleaned = []
+    for d in devices:
+        ip  = d["ip"]
+        mac = d.get("mac", "00:00:00:00:00:00").lower()
+        if ip in seen:
+            continue
+        try:
+            last = int(ip.split(".")[-1])
+            if last in (0, 255):
+                continue
+        except ValueError:
+            continue
+        if mac == "ff:ff:ff:ff:ff:ff":
+            continue
+        seen.add(ip)
+        cleaned.append(d)
+
+    cleaned.sort(key=lambda d: int(d["ip"].split(".")[-1]))
+    print(f"  [SCANNER] Final: {[d['ip'] for d in cleaned]}")
+    return cleaned, local_ip
+
+
+# ── PORT SCANNER ──────────────────────────────────────────────────────────────
+def scan_single_port(ip, port, timeout=1.0):
+    s = None
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        result = s.connect_ex((ip, port))
+        return port if result == 0 else None
+    except Exception:
+        return None
+    finally:
+        if s:
+            try: s.close()
+            except Exception: pass
+
 
 def scan_ports(ip):
-    """Scan all common ports on a given IP"""
-    print(f"\n  🚪 Scanning ports on {ip}...")
-
     open_ports = []
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-        future_to_port = {
-            executor.submit(check_port, ip, port): port
-            for port in COMMON_PORTS
-        }
-
-        for future in concurrent.futures.as_completed(future_to_port):
-            port = future_to_port[future]
-            is_open = future.result()
-
-            if is_open:
-                service, risk, description = COMMON_PORTS[port]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as ex:
+        futures = {ex.submit(scan_single_port, ip, p): p for p in PORTS_TO_SCAN}
+        for f in concurrent.futures.as_completed(futures):
+            p = f.result()
+            if p:
+                info = VULN_DB.get(p, {})
                 open_ports.append({
-                    'port': port,
-                    'service': service,
-                    'risk': risk,
-                    'description': description
+                    "port":    p,
+                    "service": info.get("service", "Unknown"),
+                    "risk":    info.get("risk",    "UNKNOWN"),
+                    "cvss":    info.get("cvss",    0),
+                    "desc":    info.get("desc",    ""),
                 })
+    return sorted(open_ports, key=lambda x: x["cvss"], reverse=True)
 
-    open_ports.sort(key=lambda x: x['port'])
-    return open_ports
 
-# ─── MODULE 3 — VULNERABILITY CHECKER ───────────
-
-VULNERABILITY_DB = {
-    21: {
-        "name": "FTP - File Transfer Protocol",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "FTP is an old protocol used to transfer files between computers.",
-        "hacker_can": [
-            "Intercept files being transferred (no encryption)",
-            "Brute force weak passwords",
-            "Use anonymous login if misconfigured",
-            "Upload malicious files to the server"
-        ],
-        "fix": [
-            "Disable FTP if not needed",
-            "Use SFTP instead (encrypted version)",
-            "Enforce strong passwords",
-            "Disable anonymous login"
-        ],
-        "cvss_score": 9.8
-    },
-    22: {
-        "name": "SSH - Secure Shell",
-        "severity": "🟡 MEDIUM",
-        "what_is_it": "SSH allows secure remote access to a computer.",
-        "hacker_can": [
-            "Brute force weak passwords",
-            "Exploit outdated SSH versions",
-            "Try stolen credentials"
-        ],
-        "fix": [
-            "Use SSH keys instead of passwords",
-            "Disable root login",
-            "Change default port 22",
-            "Use fail2ban to block brute force"
-        ],
-        "cvss_score": 5.5
-    },
-    23: {
-        "name": "Telnet",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "Telnet is an old remote access protocol with NO encryption.",
-        "hacker_can": [
-            "Intercept ALL data including passwords (plain text)",
-            "Hijack active sessions",
-            "Perform man-in-the-middle attacks"
-        ],
-        "fix": [
-            "Disable Telnet immediately",
-            "Use SSH instead",
-            "Block port 23 on firewall"
-        ],
-        "cvss_score": 9.8
-    },
-    80: {
-        "name": "HTTP - Web Server",
-        "severity": "🟡 MEDIUM",
-        "what_is_it": "An unencrypted web server is running on this device.",
-        "hacker_can": [
-            "Intercept web traffic (no encryption)",
-            "Inject malicious content",
-            "Steal login credentials sent over HTTP"
-        ],
-        "fix": [
-            "Redirect all HTTP to HTTPS",
-            "Install SSL certificate",
-            "Enable HSTS header"
-        ],
-        "cvss_score": 5.0
-    },
-    135: {
-        "name": "RPC - Remote Procedure Call",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "Windows RPC allows programs to request services from other computers.",
-        "hacker_can": [
-            "Exploit RPC vulnerabilities (used in famous Blaster worm)",
-            "Execute remote code on your machine",
-            "Crash your system remotely"
-        ],
-        "fix": [
-            "Block port 135 on firewall",
-            "Keep Windows updated",
-            "Disable unnecessary RPC services"
-        ],
-        "cvss_score": 9.8
-    },
-    139: {
-        "name": "NetBIOS - Network Basic Input/Output System",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "NetBIOS allows computers to share files and printers on a network.",
-        "hacker_can": [
-            "Enumerate users and shares on your PC",
-            "Exploit null sessions to access data",
-            "Use it for lateral movement in a network attack"
-        ],
-        "fix": [
-            "Disable NetBIOS over TCP/IP",
-            "Block ports 137-139 on firewall",
-            "Use modern file sharing instead"
-        ],
-        "cvss_score": 8.1
-    },
-    443: {
-        "name": "HTTPS - Secure Web Server",
-        "severity": "🟢 LOW",
-        "what_is_it": "An encrypted web server is running — this is normal and safe.",
-        "hacker_can": [
-            "Exploit outdated SSL/TLS versions",
-            "Use expired certificates"
-        ],
-        "fix": [
-            "Keep SSL certificates updated",
-            "Use TLS 1.2 or higher",
-            "Disable old SSL versions"
-        ],
-        "cvss_score": 2.0
-    },
-    445: {
-        "name": "SMB - Server Message Block",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "SMB is used for Windows file sharing. Famous for WannaCry ransomware.",
-        "hacker_can": [
-            "Deploy WannaCry or NotPetya ransomware",
-            "Access shared files without authentication",
-            "Move laterally across the entire network",
-            "Execute remote code (EternalBlue exploit)"
-        ],
-        "fix": [
-            "Block port 445 on firewall immediately",
-            "Disable SMBv1",
-            "Keep Windows fully updated",
-            "Never expose SMB to the internet"
-        ],
-        "cvss_score": 10.0
-    },
-    3306: {
-        "name": "MySQL Database",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "A MySQL database is exposed on the network.",
-        "hacker_can": [
-            "Access all your database data",
-            "Brute force database credentials",
-            "Dump entire database contents",
-            "Inject malicious SQL queries"
-        ],
-        "fix": [
-            "Never expose database to public network",
-            "Bind MySQL to localhost only",
-            "Use strong passwords",
-            "Enable firewall rules"
-        ],
-        "cvss_score": 9.8
-    },
-    3389: {
-        "name": "RDP - Remote Desktop Protocol",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "RDP allows remote desktop access to your Windows machine.",
-        "hacker_can": [
-            "Brute force your Windows password",
-            "Exploit BlueKeep vulnerability (no auth needed)",
-            "Take complete control of your desktop",
-            "Install ransomware or malware"
-        ],
-        "fix": [
-            "Disable RDP if not needed",
-            "Use VPN before allowing RDP",
-            "Enable Network Level Authentication",
-            "Change default RDP port",
-            "Use strong passwords + 2FA"
-        ],
-        "cvss_score": 9.8
-    },
-    5900: {
-        "name": "VNC - Virtual Network Computing",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "VNC provides remote desktop access, often with weak security.",
-        "hacker_can": [
-            "View your screen in real time",
-            "Control your mouse and keyboard",
-            "Brute force weak VNC passwords"
-        ],
-        "fix": [
-            "Add strong VNC password",
-            "Use VPN tunnel for VNC",
-            "Disable if not needed"
-        ],
-        "cvss_score": 9.8
-    },
-    8080: {
-        "name": "HTTP Alternate Port",
-        "severity": "🟡 MEDIUM",
-        "what_is_it": "An alternate web server port — often used for dev servers or proxies.",
-        "hacker_can": [
-            "Access development servers with debug info",
-            "Find exposed admin panels",
-            "Exploit misconfigured proxy servers"
-        ],
-        "fix": [
-            "Secure or disable if not needed",
-            "Add authentication",
-            "Use HTTPS instead"
-        ],
-        "cvss_score": 5.0
-    },
-    27017: {
-        "name": "MongoDB Database",
-        "severity": "🔴 CRITICAL",
-        "what_is_it": "A MongoDB database is exposed — historically left open with no auth.",
-        "hacker_can": [
-            "Access ALL database records with no password",
-            "Delete or encrypt your data for ransom",
-            "Exfiltrate sensitive information"
-        ],
-        "fix": [
-            "Enable MongoDB authentication immediately",
-            "Bind to localhost only",
-            "Block port 27017 on firewall"
-        ],
-        "cvss_score": 10.0
-    }
-}
-
+# ── VULNERABILITY ANALYSIS ────────────────────────────────────────────────────
 def check_vulnerabilities(open_ports):
-    """Check vulnerabilities for each open port"""
-    
-    vulnerabilities = []
-    
-    for port_info in open_ports:
-        port = port_info['port']
-        
-        if port in VULNERABILITY_DB:
-            vuln = VULNERABILITY_DB[port].copy()
-            vuln['port'] = port
-            vulnerabilities.append(vuln)
-        else:
-            # Generic entry for unknown ports
-            vulnerabilities.append({
-                'port': port,
-                'name': port_info['service'],
-                'severity': port_info['risk'],
-                'what_is_it': "Unknown service running on this port.",
-                'hacker_can': ["Exploit unknown services"],
-                'fix': ["Investigate and close if not needed"],
-                'cvss_score': 5.0
+    vulns = []
+    for p in open_ports:
+        port = p["port"]
+        if port in VULN_DB and VULN_DB[port]["cvss"] >= 4.0:
+            db = VULN_DB[port]
+            vulns.append({
+                "port":       port,
+                "name":       db["service"] + " - " + db["desc"],
+                "severity":   ("CRITICAL" if db["cvss"] >= 9 else
+                               "HIGH"     if db["cvss"] >= 7 else "MEDIUM"),
+                "cvss_score": db["cvss"],
+                "hacker_can": db["hacker_can"],
+                "fix":        db["fix"],
             })
-    
-    # Sort by CVSS score — most dangerous first
-    vulnerabilities.sort(key=lambda x: x['cvss_score'], reverse=True)
-    return vulnerabilities
+    return vulns
+
+
+# ── RISK SCORING ──────────────────────────────────────────────────────────────
+def calculate_risk_score(open_ports, vulnerabilities):
+    if not open_ports:
+        return 0.0
+    score = min(2.0, len(open_ports) * 0.4)
+    if vulnerabilities:
+        avg   = sum(v["cvss_score"] for v in vulnerabilities) / len(vulnerabilities)
+        mx    = max(v["cvss_score"] for v in vulnerabilities)
+        score += (avg / 10) * 3.5 + (mx / 10) * 3.5
+    if any(p["port"] in {23, 445, 3389, 6379, 27017} for p in open_ports):
+        score += 0.5
+    return min(10.0, round(score, 1))
+
+
+def get_risk_label(score):
+    if score >= 8: return "CRITICAL"
+    if score >= 6: return "HIGH"
+    if score >= 4: return "MEDIUM"
+    if score >= 2: return "LOW"
+    return "MINIMAL"

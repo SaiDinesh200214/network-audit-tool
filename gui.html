@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NetAudit Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#007AFF;--green:#30D158;--red:#FF453A;--orange:#FF9F0A;--purple:#BF5AF2;--teal:#5AC8FA;
+  --bg:#060608;--s1:rgba(255,255,255,.07);--s2:rgba(255,255,255,.11);--s3:rgba(255,255,255,.16);
+  --b1:rgba(255,255,255,.10);--b2:rgba(255,255,255,.18);
+  --t1:#F2F2F7;--t2:rgba(242,242,247,.55);--t3:rgba(242,242,247,.28);
+  --sh:0 8px 40px rgba(0,0,0,.6);--tb:rgba(0,0,0,.5);
+  --r:20px;--r2:14px;--r3:10px;
+  --f:'Inter',-apple-system,sans-serif;--m:'JetBrains Mono','Courier New',monospace;--d:'Syne','Inter',sans-serif;
+  --tr:all .22s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;font-family:var(--f);background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;}
+@media(max-width:1023px){html,body{overflow:auto;}}
+#matrix{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45;}
+.glass{background:var(--s1);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid var(--b1);box-shadow:var(--sh),inset 0 1px 0 rgba(255,255,255,.08);}
+
+/* ONBOARDING */
+#ob{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:16px;transition:opacity .4s;}
+#ob.hide{opacity:0;pointer-events:none;}
+.obc{width:100%;max-width:460px;background:rgba(14,14,22,.97);border:1px solid var(--b2);border-radius:26px;padding:30px 30px 24px;position:relative;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.08);animation:popIn .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{opacity:0;transform:scale(.88) translateY(20px)}to{opacity:1;transform:none}}
+.obc::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;background:linear-gradient(90deg,transparent,var(--blue),var(--purple),transparent);}
+.ob-hdr{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
+.ob-ico{width:48px;height:48px;border-radius:13px;flex-shrink:0;background:linear-gradient(135deg,#007AFF,#5856D6);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 6px 18px rgba(0,122,255,.4);}
+.ob-hdr h2{font-family:var(--d);font-size:19px;font-weight:800;background:linear-gradient(135deg,#fff 50%,rgba(255,255,255,.6));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.ob-hdr p{font-size:10.5px;color:var(--t2);margin-top:2px;}
+.ob-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+.ob-pill{background:var(--s2);border:1px solid var(--b1);border-radius:99px;padding:4px 10px;font-size:10.5px;color:var(--t2);font-weight:500;}
+.ob-policy{background:rgba(255,159,10,.07);border:1px solid rgba(255,159,10,.2);border-radius:var(--r3);padding:13px;margin-bottom:13px;}
+.ob-ptitle{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);margin-bottom:7px;}
+.ob-plist{font-size:10.5px;color:var(--t2);line-height:1.7;padding-left:13px;}
+.ob-plist li{margin-bottom:2px;}
+.ob-chk{display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-bottom:14px;}
+.ob-chk input{width:15px;height:15px;border-radius:4px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;margin-top:2px;}
+.ob-chk span{font-size:11px;color:var(--t1);font-weight:500;line-height:1.5;}
+.ob-btn{width:100%;padding:12px;background:linear-gradient(135deg,#007AFF,#5856D6);border:none;border-radius:var(--r2);font-family:var(--f);font-size:13.5px;font-weight:700;color:#fff;cursor:pointer;transition:var(--tr);box-shadow:0 4px 18px rgba(0,122,255,.5);opacity:.35;pointer-events:none;}
+.ob-btn.on{opacity:1;pointer-events:all;}
+.ob-btn.on:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,122,255,.65);}
+.ob-btn.on:active{transform:scale(.97);}
+.ob-foot{text-align:center;margin-top:10px;font-size:10px;color:var(--t3);}
+.ob-foot a{color:var(--blue);text-decoration:none;font-weight:600;}
+
+/* APP */
+#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;padding:11px;gap:9px;max-width:1400px;margin:0 auto;}
+@media(max-width:1023px){#app{height:auto;min-height:100vh;overflow:visible;}}
+.topnav{border-radius:var(--r);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.nav-l{display:flex;align-items:center;gap:9px;}
+.aico{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,#007AFF,#5856D6);display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 12px rgba(0,122,255,.4);}
+.ntitle{font-family:var(--d);font-size:14px;font-weight:800;}
+.nsub{font-size:9.5px;color:var(--t2);margin-top:1px;}
+.nbadge{background:var(--s2);border:1px solid var(--b1);border-radius:20px;padding:4px 11px;font-size:10.5px;color:var(--t2);font-weight:500;display:flex;align-items:center;gap:5px;}
+.ndot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.8)}}
+.mrow{display:grid;grid-template-columns:285px 1fr;gap:9px;flex:1;min-height:0;}
+.lpanel{display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding-right:2px;}
+.lpanel::-webkit-scrollbar{width:3px;}
+.lpanel::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.card{border-radius:var(--r);padding:14px;flex-shrink:0;}
+.clabel{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;}
+.fg{margin-bottom:9px;}
+.fl{font-size:10.5px;color:var(--t2);margin-bottom:4px;font-weight:600;}
+.fi{width:100%;background:var(--s2);border:1.5px solid var(--b1);border-radius:var(--r3);padding:8px 11px;font-size:13px;font-family:var(--f);color:var(--t1);outline:none;transition:var(--tr);}
+.fi::placeholder{color:var(--t3);}
+.fi:focus{background:var(--s3);border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,122,255,.18);}
+.sbtn{width:100%;padding:11px;background:linear-gradient(135deg,#007AFF,#5856D6);border:none;border-radius:var(--r2);font-family:var(--f);font-size:13.5px;font-weight:700;color:#fff;cursor:pointer;position:relative;overflow:hidden;transition:all .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 18px rgba(0,122,255,.45),inset 0 1px 0 rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;gap:7px;}
+.sbtn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transition:left .55s;}
+.sbtn:hover::before{left:100%;}
+.sbtn:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,122,255,.6);}
+.sbtn:active{transform:scale(.97);}
+.sbtn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.pw{margin-top:8px;height:3px;background:var(--s2);border-radius:99px;overflow:hidden;opacity:0;transition:opacity .3s;}
+.pw.on{opacity:1;}
+.pb{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px;box-shadow:0 0 8px rgba(0,122,255,.6);}
+.pb.ind{animation:pslide 1.4s ease-in-out infinite;}
+@keyframes pslide{0%{transform:translateX(-160%)}100%{transform:translateX(380%)}}
+.stxt{font-size:9.5px;color:var(--t3);margin-top:4px;text-align:center;min-height:13px;font-weight:500;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.scard{border-radius:var(--r2);padding:10px;text-align:center;transition:transform .2s;cursor:default;}
+.scard:hover{transform:scale(1.05);}
+.sval{font-family:var(--d);font-size:20px;font-weight:800;line-height:1;margin-bottom:2px;}
+.slbl{font-size:9px;color:var(--t2);font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.abtn{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r3);padding:8px 12px;font-family:var(--f);font-size:11.5px;font-weight:600;color:var(--t1);cursor:pointer;display:flex;align-items:center;gap:7px;transition:var(--tr);margin-bottom:4px;}
+.abtn:hover{background:var(--s3);transform:translateX(3px);}
+.abtn:disabled{opacity:.3;cursor:not-allowed;transform:none!important;}
+.abtn.ok{color:var(--green);}
+.abtn.dn{color:var(--red);}
+.abtn.bl{color:var(--blue);}
+
+/* RIGHT */
+.rpanel{border-radius:var(--r);display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.thdr{padding:9px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.tlights{display:flex;gap:5px;align-items:center;}
+.tl{width:11px;height:11px;border-radius:50%;cursor:pointer;}
+.tl.r{background:#FF5F57;box-shadow:0 0 6px rgba(255,95,87,.5);}
+.tl.y{background:#FFBD2E;box-shadow:0 0 6px rgba(255,189,46,.5);}
+.tl.g{background:#28C840;box-shadow:0 0 6px rgba(40,200,64,.5);}
+.ttl{font-size:11.5px;font-weight:600;color:var(--t2);display:flex;align-items:center;gap:6px;}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);animation:pulse 1.5s ease-in-out infinite;}
+.ttime{font-size:10px;color:var(--t3);font-family:var(--m);}
+.tabs{display:flex;padding:7px 14px 0;gap:2px;border-bottom:1px solid var(--b1);background:rgba(0,0,0,.1);flex-shrink:0;}
+.tab{padding:5px 12px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;font-family:var(--f);border-radius:var(--r3) var(--r3) 0 0;border:1px solid transparent;border-bottom:none;transition:var(--tr);background:none;margin-bottom:-1px;}
+.tab.active{color:var(--t1);background:var(--s2);border-color:var(--b1);border-bottom-color:transparent;}
+.tab:hover:not(.active){color:var(--t1);}
+.tpane{display:none;flex:1;min-height:0;overflow:hidden;}
+.tpane.active{display:flex;flex-direction:column;}
+.tbody{flex:1;overflow-y:auto;padding:12px 16px;font-family:var(--m);font-size:11.5px;line-height:1.75;background:var(--tb);}
+.tbody::-webkit-scrollbar{width:3px;}
+.tbody::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.ll{display:block;animation:logIn .2s ease;}
+@keyframes logIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+.cw{color:#e6edf3;}.cg{color:#3fb950;}.cr{color:#f85149;}
+.cy{color:#d29922;}.cb{color:#58a6ff;}.cp{color:#bc8cff;}
+.cgr{color:#6e7681;}.ca{color:#79c0ff;}
+
+/* WELCOME */
+.wlc{text-align:center;padding:32px 20px;}
+.wico{font-size:44px;margin-bottom:12px;display:block;filter:drop-shadow(0 0 18px rgba(0,122,255,.5));animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.wlc h2{font-family:var(--d);font-size:17px;font-weight:800;margin-bottom:6px;}
+.wlc p{font-size:11.5px;color:var(--t2);margin-bottom:16px;line-height:1.6;}
+.pills{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;}
+.pill{background:var(--s2);border:1px solid var(--b1);border-radius:99px;padding:4px 10px;font-size:10px;color:var(--t2);display:flex;align-items:center;gap:4px;font-weight:500;}
+
+/* RESULTS */
+.rscroll{flex:1;overflow-y:auto;padding:12px 14px;}
+.rscroll::-webkit-scrollbar{width:3px;}
+.rscroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.sumbanner{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:10px 14px;margin-bottom:9px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;}
+.sv{font-family:var(--d);font-size:19px;font-weight:800;}
+.sl{font-size:9px;color:var(--t2);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.dcard{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);margin-bottom:9px;overflow:hidden;}
+.dhdr{padding:9px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);background:var(--s2);}
+.dip{font-size:12.5px;font-weight:700;font-family:var(--m);color:var(--teal);}
+.dmac{font-size:9.5px;color:var(--t3);font-family:var(--m);margin-top:1px;}
+.dos{font-size:9.5px;color:var(--t2);margin-top:2px;}
+.dbadge{font-size:9px;padding:2px 8px;border-radius:99px;font-weight:800;}
+.bme{background:rgba(0,122,255,.15);color:var(--blue);border:1px solid rgba(0,122,255,.3);}
+.bdev{background:var(--s2);color:var(--t2);border:1px solid var(--b1);}
+.risk-badge{font-size:9px;padding:2px 8px;border-radius:99px;font-weight:800;margin-left:6px;}
+.rbc{background:rgba(255,69,58,.18);color:#ff6b6b;border:1px solid rgba(255,69,58,.3);}
+.rbh{background:rgba(255,159,10,.18);color:#ffbf5e;border:1px solid rgba(255,159,10,.3);}
+.rbm{background:rgba(255,214,10,.12);color:#ffe55e;border:1px solid rgba(255,214,10,.25);}
+.rbl{background:rgba(48,209,88,.12);color:#5dde7a;border:1px solid rgba(48,209,88,.25);}
+.ptbl{width:100%;border-collapse:collapse;}
+.ptbl td{padding:6px 13px;font-size:10.5px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--t2);}
+.ptbl tr:last-child td{border-bottom:none;}
+.pnum{font-family:var(--m);color:var(--teal);font-weight:700;font-size:11.5px;}
+.rpill{font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:.04em;}
+.prc{background:rgba(255,69,58,.18);color:#ff6b6b;border:1px solid rgba(255,69,58,.3);}
+.prh{background:rgba(255,159,10,.12);color:#ffbf5e;border:1px solid rgba(255,159,10,.25);}
+.prm{background:rgba(255,214,10,.12);color:#ffe55e;border:1px solid rgba(255,214,10,.25);}
+.prl{background:rgba(48,209,88,.12);color:#5dde7a;border:1px solid rgba(48,209,88,.25);}
+.vc{margin:6px 13px 8px;background:rgba(255,69,58,.04);border:1px solid rgba(255,69,58,.16);border-radius:var(--r3);overflow:hidden;}
+.vh{padding:7px 12px;background:rgba(255,69,58,.08);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,69,58,.12);}
+.vt{font-size:10.5px;font-weight:700;color:#ff6b6b;}
+.cvss{font-size:9.5px;font-weight:800;color:var(--red);font-family:var(--m);}
+.vb{padding:8px 12px;}
+.vsec{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:6px 0 3px;}
+.vsec:first-child{margin-top:0;}
+.vi{font-size:10.5px;color:var(--t2);padding:1px 0;display:flex;gap:6px;}
+.vi.att{color:rgba(255,107,107,.85);}
+.vi.fix{color:rgba(93,222,122,.85);}
+
+/* ALERT CARDS */
+.alert-card{background:rgba(255,69,58,.06);border:1px solid rgba(255,69,58,.2);border-radius:var(--r3);padding:10px 13px;margin-bottom:7px;}
+.alert-card.warn{background:rgba(255,159,10,.06);border-color:rgba(255,159,10,.2);}
+.alert-title{font-size:11px;font-weight:700;color:#ff6b6b;margin-bottom:3px;}
+.alert-card.warn .alert-title{color:var(--orange);}
+.alert-detail{font-size:10.5px;color:var(--t2);margin-bottom:4px;}
+.alert-rec{font-size:10px;color:rgba(93,222,122,.85);}
+
+/* ABOUT */
+.ascroll{flex:1;overflow-y:auto;padding:14px;}
+.ascroll::-webkit-scrollbar{width:3px;}
+.ascroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+
+/* POPUP */
+.pov{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .3s;padding:16px;}
+.pov.show{opacity:1;pointer-events:all;}
+.pbox{background:rgba(14,14,22,.97);border:1px solid var(--b2);border-radius:22px;padding:28px 30px 24px;max-width:390px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.08);transform:scale(.88) translateY(16px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;}
+.pov.show .pbox{transform:scale(1) translateY(0);}
+.pbox::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;border-radius:99px;}
+.pbox.ok::before{background:linear-gradient(90deg,transparent,var(--green),transparent);}
+.pbox.er::before{background:linear-gradient(90deg,transparent,var(--red),transparent);}
+.pbox.pd::before{background:linear-gradient(90deg,transparent,var(--blue),transparent);}
+.pico{font-size:44px;margin-bottom:11px;display:block;}
+.ptitle{font-family:var(--d);font-size:18px;font-weight:800;margin-bottom:6px;color:var(--t1);}
+.pmsg{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:20px;white-space:pre-line;}
+.pacts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.pbtn{padding:9px 20px;border-radius:99px;border:none;font-family:var(--f);font-size:12.5px;font-weight:700;cursor:pointer;transition:var(--tr);}
+.pbtn.pri{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(0,122,255,.4);}
+.pbtn.pri:hover{background:#0066dd;transform:translateY(-1px);}
+.pbtn.dan{background:var(--red);color:#fff;}
+.pbtn.dan:hover{transform:translateY(-1px);}
+.pbtn.gst{background:var(--s2);color:var(--t1);border:1px solid var(--b1);}
+.pbtn.gst:hover{background:var(--s3);transform:translateY(-1px);}
+.pbtn.suc{background:var(--green);color:#000;}
+.pbtn.suc:hover{transform:translateY(-1px);}
+
+/* RESPONSIVE */
+@media(max-width:1023px){.mrow{grid-template-columns:1fr;}.lpanel{flex-direction:row;flex-wrap:wrap;overflow:visible;padding:0;}.lpanel .card{flex:1 1 230px;}.rpanel{min-height:460px;}}
+@media(max-width:767px){:root{--r:16px;--r2:12px;--r3:9px;}#app{padding:7px;gap:7px;}.nsub{display:none;}.lpanel{flex-direction:column;}.lpanel .card{flex:none;width:100%;}.rpanel{min-height:380px;}.tbody{font-size:10.5px;padding:9px 11px;}.sumbanner{grid-template-columns:1fr 1fr;}}
+@media(max-width:479px){.sgrid{grid-template-columns:repeat(4,1fr);gap:4px;}.scard{padding:7px 4px;}.sval{font-size:15px;}.slbl{font-size:7.5px;}.rpanel{min-height:320px;}.tlights{display:none;}}
+@media(hover:none) and (pointer:coarse){.sbtn,.abtn{padding:13px;}.fi{font-size:16px;}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+
+<!-- ONBOARDING -->
+<div id="ob">
+  <div class="obc">
+    <div class="ob-hdr">
+      <div class="ob-ico">🛡️</div>
+      <div><h2>NetAudit Pro</h2><p>Professional Network Security Audit Tool · v1.0</p></div>
+    </div>
+    <div class="ob-pills">
+      <div class="ob-pill">📡 Device Discovery</div>
+      <div class="ob-pill">💻 OS Detection</div>
+      <div class="ob-pill">🚪 Port Scanner</div>
+      <div class="ob-pill">⚠️ Vuln Analysis</div>
+      <div class="ob-pill">📊 Risk Scoring</div>
+      <div class="ob-pill">🗺️ Topology Map</div>
+      <div class="ob-pill">🔎 Attack Detection</div>
+      <div class="ob-pill">📄 PDF Report</div>
+    </div>
+    <div class="ob-policy">
+      <div class="ob-ptitle">⚠️ Legal & Security Policy</div>
+      <ul class="ob-plist">
+        <li>Only scan networks you <strong>own or have explicit permission</strong> to test.</li>
+        <li>Unauthorized scanning is <strong>illegal</strong> in most jurisdictions.</li>
+        <li>For <strong>educational and authorized auditing purposes only.</strong></li>
+        <li>Always run with <strong>Administrator / sudo privileges.</strong></li>
+        <li>Developer is <strong>not liable</strong> for any misuse.</li>
+      </ul>
+    </div>
+    <label class="ob-chk">
+      <input type="checkbox" id="obchk" onchange="document.getElementById('obcta').classList.toggle('on',this.checked)">
+      <span>I agree to the legal terms and will only scan networks I own or have permission to audit.</span>
+    </label>
+    <button class="ob-btn" id="obcta" onclick="enterApp()">Continue to NetAudit Pro →</button>
+    <div class="ob-foot">By <a href="https://github.com/SaiDinesh200214" target="_blank">SaiDinesh Andekar</a> · <a href="mailto:saidineshandekar1402@gmail.com">saidineshandekar1402@gmail.com</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="topnav glass">
+    <div class="nav-l">
+      <div class="aico">🛡</div>
+      <div><div class="ntitle">NetAudit Pro</div><div class="nsub">Network Security Audit · SaiDinesh Andekar</div></div>
+    </div>
+    <div class="nbadge"><div class="ndot"></div><span id="nstat">Ready</span></div>
+  </nav>
+
+  <div class="mrow">
+    <div class="lpanel">
+      <!-- Config -->
+      <div class="card glass">
+        <div class="clabel">Configuration</div>
+        <div class="fg"><div class="fl">👤 Auditor Name</div><input class="fi" id="aname" type="text" placeholder="Your full name"></div>
+        <div class="fg"><div class="fl">📄 Report Filename</div><input class="fi" id="rname" type="text" placeholder="Auto-generated"></div>
+        <button class="sbtn" id="scanbtn" onclick="startScan()"><span id="bico">▶</span><span id="btxt">Start Scan</span></button>
+        <div class="pw" id="pw"><div class="pb ind"></div></div>
+        <div class="stxt" id="stxt">Enter name and click Start Scan</div>
+      </div>
+      <!-- Stats -->
+      <div class="card glass">
+        <div class="clabel">Scan Results</div>
+        <div class="sgrid">
+          <div class="scard glass"><div class="sval" id="sd" style="color:var(--blue)">—</div><div class="slbl">Devices</div></div>
+          <div class="scard glass"><div class="sval" id="sv" style="color:var(--orange)">—</div><div class="slbl">Vulns</div></div>
+          <div class="scard glass"><div class="sval" id="sc" style="color:var(--red)">—</div><div class="slbl">Critical</div></div>
+          <div class="scard glass"><div class="sval" id="sr" style="color:var(--purple)">—</div><div class="slbl">Risk</div></div>
+        </div>
+      </div>
+      <!-- Actions -->
+      <div class="card glass">
+        <div class="clabel">Actions</div>
+        <button class="abtn ok" id="rpbtn" disabled onclick="openReport()">📄 Open PDF Report</button>
+        <button class="abtn bl" id="tpbtn" disabled onclick="openTopology()">🗺️ View Network Map</button>
+        <button class="abtn" onclick="resetScan()">🔄 New Scan</button>
+        <button class="abtn" onclick="showOb()">ℹ️ About & Policy</button>
+        <button class="abtn dn" onclick="if(confirm('Quit?'))window.close()">✕ Quit</button>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="rpanel glass">
+      <div class="thdr">
+        <div style="display:flex;align-items:center;gap:11px">
+          <div class="tlights"><div class="tl r"></div><div class="tl y"></div><div class="tl g"></div></div>
+          <div class="ttl"><div class="ldot" id="ldot" style="opacity:.3"></div>Live Terminal</div>
+        </div>
+        <div class="ttime" id="ttime">--:--:--</div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="stab('terminal',this)">Terminal</button>
+        <button class="tab" onclick="stab('results',this)">Results</button>
+        <button class="tab" onclick="stab('alerts',this)">Alerts</button>
+        <button class="tab" onclick="stab('about',this)">About</button>
+      </div>
+
+      <div class="tpane active" id="tab-terminal">
+        <div class="tbody" id="tbody">
+          <div class="wlc" id="wlc">
+            <span class="wico">🛡️</span>
+            <h2>NetAudit Pro</h2>
+            <p>Enter your name and click <strong>Start Scan</strong><br>to audit your network.</p>
+            <div class="pills">
+              <div class="pill">📡 Device Discovery</div><div class="pill">💻 OS Detection</div>
+              <div class="pill">🚪 Port Scanner</div><div class="pill">⚠️ Vuln Analysis</div>
+              <div class="pill">📊 Risk Scoring</div><div class="pill">🔎 Attack Detection</div>
+            </div>
+          </div>
+          <div id="tlog" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="tpane" id="tab-results">
+        <div class="rscroll" id="rbody">
+          <div style="text-align:center;padding:44px;color:var(--t3)"><div style="font-size:32px;margin-bottom:9px">📊</div><div style="font-size:12.5px;font-weight:500">Run a scan to see results</div></div>
+        </div>
+      </div>
+
+      <div class="tpane" id="tab-alerts">
+        <div class="rscroll" id="abody">
+          <div style="text-align:center;padding:44px;color:var(--t3)"><div style="font-size:32px;margin-bottom:9px">🔎</div><div style="font-size:12.5px;font-weight:500">Attack detection results appear here</div></div>
+        </div>
+      </div>
+
+      <div class="tpane" id="tab-about">
+        <div class="ascroll">
+          <div style="max-width:440px;margin:0 auto;padding:6px 0">
+            <div style="text-align:center;margin-bottom:16px">
+              <div style="font-size:40px;margin-bottom:9px;filter:drop-shadow(0 0 14px rgba(0,122,255,.5));animation:float 3s ease-in-out infinite">🛡️</div>
+              <div style="font-family:var(--d);font-size:16px;font-weight:800;margin-bottom:3px">NetAudit Pro</div>
+              <div style="font-size:10.5px;color:var(--t2)">Version 1.0 · Professional Edition</div>
+            </div>
+            <div class="card glass" style="margin-bottom:8px">
+              <div class="clabel">Developer</div>
+              <div style="font-size:13.5px;font-weight:700;margin-bottom:3px">SaiDinesh Andekar</div>
+              <div style="font-size:10.5px;color:var(--t2);margin-bottom:2px">📧 <a href="mailto:saidineshandekar1402@gmail.com" style="color:var(--t2);text-decoration:none">saidineshandekar1402@gmail.com</a></div>
+              <div style="font-size:10.5px;color:var(--blue)">🐙 github.com/SaiDinesh200214</div>
+            </div>
+            <div class="card glass" style="margin-bottom:8px">
+              <div class="clabel">Modules</div>
+              <div class="pills" style="justify-content:flex-start;margin-top:3px">
+                <div class="pill">📡 Scapy</div><div class="pill">🔌 Socket</div><div class="pill">📄 ReportLab</div>
+                <div class="pill">🎨 HTML5 Canvas</div><div class="pill">🐍 Python 3.x</div>
+              </div>
+            </div>
+            <div class="card glass">
+              <div class="clabel">⚠️ Disclaimer</div>
+              <div style="font-size:10.5px;color:var(--t2);line-height:1.75">For educational and authorized auditing only. Only scan networks you own or have explicit permission to test. Unauthorized scanning is illegal.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="pov" id="pov">
+  <div class="pbox" id="pbox">
+    <span class="pico" id="pico">✅</span>
+    <div class="ptitle" id="ptitle">Done</div>
+    <div class="pmsg" id="pmsg"></div>
+    <div class="pacts" id="pacts"></div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// Auto-detect API URL from where this page was loaded
+// If served by launch.py at http://localhost:8765/gui.html → API = http://localhost:8765
+// If opened as file:// → show clear error
+const API = (location.protocol === 'http:' || location.protocol === 'https:')
+  ? `${location.protocol}//${location.hostname}:${location.port || 8765}`
+  : 'http://localhost:8765';
+
+let scanRunning=false, reportFile=null, topoUrl=null, reportUrl=null;
+
+// Ping backend on load to show connection status
+async function pingBackend(){
+  try{
+    const r = await fetch(`${API}/ping`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(2000)});
+    const d = await r.json();
+    if(d.success){
+      document.getElementById('nstat').textContent='Backend Connected ✅';
+      document.getElementById('ndot').style.background='var(--green)';
+    }
+  }catch(e){
+    if(location.protocol === 'file:'){
+      document.getElementById('nstat').textContent='⚠ Open via launch.py!';
+      document.getElementById('ndot').style.background='var(--red)';
+    } else {
+      document.getElementById('nstat').textContent='Backend Offline ⚠';
+      document.getElementById('ndot').style.background='var(--orange)';
+    }
+  }
+}
+setTimeout(pingBackend, 800);
+
+// CLOCK
+setInterval(()=>{document.getElementById('ttime').textContent=new Date().toTimeString().slice(0,8);},1000);
+
+// ONBOARDING
+function enterApp(){
+  if(!document.getElementById('obchk').checked)return;
+  const o=document.getElementById('ob');
+  o.classList.add('hide');
+  setTimeout(()=>o.style.display='none',400);
+}
+function showOb(){
+  const o=document.getElementById('ob');
+  o.style.display='flex';
+  requestAnimationFrame(()=>o.classList.remove('hide'));
+}
+
+// POPUP
+// Safe popup action store — replaces new Function() (eval risk)
+let _lastScanAuditor='', _lastScanRn='';
+
+function popup(ico,title,msg,style,btns){
+  document.getElementById('pico').textContent=ico;
+  document.getElementById('ptitle').textContent=title;
+  document.getElementById('pmsg').textContent=msg;
+  document.getElementById('pbox').className='pbox '+(style||'ok');
+  const a=document.getElementById('pacts');a.innerHTML='';
+  (btns||[{l:'OK',c:'pri',f:'cpop()'}]).forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className='pbtn '+b.c; btn.textContent=b.l;
+    btn.onclick=()=>{
+      const f=b.f||'';
+      if(f.startsWith('doScan('))         { cpop(); doScan(_lastScanAuditor,_lastScanRn); }
+      else if(f==='openReport()')         { openReport(); }
+      else if(f==='openTopology()')       { openTopology(); }
+      else if(f==='resetScan()')          { resetScan(); }
+      else                                { cpop(); }
+    };
+    a.appendChild(btn);
+  });
+  document.getElementById('pov').classList.add('show');
+}
+function cpop(){document.getElementById('pov').classList.remove('show');}
+document.getElementById('pov').addEventListener('click',e=>{if(e.target===e.currentTarget)cpop();});
+
+// TABS
+function stab(n,btn){
+  document.querySelectorAll('.tpane').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  btn.classList.add('active');
+}
+
+// LOG
+function log(t,c='cw'){
+  const el=document.getElementById('tlog');
+  const s=document.createElement('span');
+  s.className='ll '+(c||'cw'); s.textContent=t;
+  el.appendChild(s); el.appendChild(document.createElement('br'));
+  document.getElementById('tbody').scrollTop=99999;
+}
+function clrlog(){
+  document.getElementById('tlog').innerHTML='';
+  document.getElementById('wlc').style.display='none';
+  document.getElementById('tlog').style.display='block';
+}
+function setstatus(t){document.getElementById('stxt').textContent=t;document.getElementById('nstat').textContent=t;}
+
+// SCAN — shows permission popup first
+function startScan(){
+  if(scanRunning) return;
+  const auditor = document.getElementById('aname').value.trim() || 'Anonymous Auditor';
+  let rn = document.getElementById('rname').value.trim();
+  const ts = new Date().toISOString().replace(/[-:T]/g,'').slice(0,15);
+  if(!rn) rn = `network_audit_${ts}.pdf`;
+  if(!rn.endsWith('.pdf')) rn += '.pdf';
+
+  _lastScanAuditor = auditor;
+  _lastScanRn      = rn;
+
+  popup('🔍','Start Network Scan?',
+    `Auditor: ${auditor}\nReport: ${rn}\n\nThis will scan all devices on your network.\nMake sure you have permission to do this.\n\nReady to begin?`,
+    'ok',
+    [
+      {l:'✅ Yes, Start Scan', c:'suc', f:'doScan()'},
+      {l:'Cancel',             c:'gst', f:'cpop()'}
+    ]
+  );
+}
+
+async function doScan(auditor, rn){
+  cpop();
+  reportFile = rn;
+  scanRunning = true;
+  clrlog();
+
+  document.getElementById('scanbtn').disabled = true;
+  document.getElementById('btxt').textContent = 'Scanning...';
+  document.getElementById('bico').innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle"></span>';
+  document.getElementById('pw').classList.add('on');
+  document.getElementById('ldot').style.opacity = '1';
+  document.getElementById('rpbtn').disabled = true;
+  document.getElementById('tpbtn').disabled = true;
+  stab('terminal', document.querySelectorAll('.tab')[0]);
+
+  log('','');
+  log('  ╔══════════════════════════════════════════════════╗','cb');
+  log('  ║     🛡  NETAUDIT PRO — SECURITY AUDIT TOOL       ║','cb');
+  log('  ║     By SaiDinesh Andekar                         ║','cb');
+  log(`  ║     Auditor: ${auditor.substring(0,36).padEnd(36)}║`,'cb');
+  log('  ╚══════════════════════════════════════════════════╝','cb');
+  log('','');
+
+  // Check if running from HTTP server or file://
+  const isHTTP = location.protocol === 'http:' || location.protocol === 'https:';
+  if(!isHTTP){
+    log('  ❌ ERROR: GUI opened as file:// — cannot connect to Python!','cr');
+    log('','');
+    log('  ══ HOW TO FIX ══════════════════════════════════','cy');
+    log('  1. Close this browser tab','cy');
+    log('  2. Open Command Prompt as Administrator','cy');
+    log('  3. cd to your project folder','cy');
+    log('  4. Run: python launch.py','cy');
+    log('  5. Browser will open automatically','cy');
+    log('  ════════════════════════════════════════════════','cy');
+    setstatus('❌ Open via python launch.py');
+    scanDone();
+    popup('❌','Wrong Launch Method!',
+      'GUI must be opened via Python server.\n\nSteps to fix:\n1. Open Command Prompt as Administrator\n2. cd to your project folder\n3. Run: python launch.py\n\nBrowser will open automatically at:\nhttp://localhost:8765/gui.html',
+      'er',
+      [{l:'OK, Got it!', c:'dan', f:'cpop()'}]
+    );
+    return;
+  }
+
+  setstatus('🔌 Connecting to backend...');
+  log(`  🔌 Connecting to ${API}/scan ...`,'cy');
+  await delay(200);
+
+  // First do a quick ping check
+  let backendOk = false;
+  try {
+    const pr = await fetch(`${API}/ping`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: '{}', signal: AbortSignal.timeout(3000)
+    });
+    const pd = await pr.json();
+    backendOk = pd.success;
+  } catch(pingErr) {
+    // Backend not reachable
+  }
+
+  if(!backendOk){
+    scanDone();
+    log('  ❌ Cannot reach Python backend!','cr');
+    log('','');
+    log('  Possible reasons:','cy');
+    log('  1. launch.py is NOT running  ← most common','cy');
+    log('  2. You opened gui.html directly (file://)','cy');
+    log('  3. Windows Firewall is blocking port 8765','cy');
+    log('','');
+    log('  Fix steps:','cg');
+    log('  1. Open CMD as Administrator','cg');
+    log('  2. cd to your project folder','cg');
+    log('  3. python launch.py','cg');
+    log('  4. Use the browser that opens automatically','cg');
+    setstatus('❌ Backend not running');
+
+    popup('❌','Backend Not Running!',
+      `Cannot reach launch.py server.\n\nURL tried: ${API}\n\nFix:\n1. Open CMD as Administrator\n2. cd network-audit-tool\n3. python launch.py\n4. Use the browser that opens automatically\n\nDO NOT open gui.html directly!`,
+      'er',
+      [{l:'OK, Got It!', c:'dan', f:'cpop()'}]
+    );
+    return;
+  }
+
+  log('  ✅ Backend connected!','cg');
+  setstatus('🔍 Scanning network...');
+
+  try{
+    const resp = await fetch(`${API}/scan`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({auditor, report_name: rn}),
+      signal: AbortSignal.timeout(120000)  // 2 min timeout for real scan
+    });
+
+    if(!resp.ok) throw new Error(`Server error: ${resp.status}`);
+    const data = await resp.json();
+
+    if(data.success){
+      reportUrl = data.report_url;
+      topoUrl   = data.topology_url;
+      await displayRealResults(data);
+    } else {
+      throw new Error(data.error || "Scan failed on backend");
+    }
+
+  } catch(err){
+    scanDone();
+    const msg = err.name === 'TimeoutError'
+      ? 'Scan timed out (>2 min). Try running as Administrator.'
+      : err.message;
+
+    log(`  ❌ Error: ${msg}`,'cr');
+    setstatus('❌ Scan failed');
+
+    popup('❌','Scan Failed!',
+      `Error: ${msg}\n\nCommon fixes:\n• Run CMD as Administrator\n• Make sure launch.py is running\n• Check scan_logs/ for details`,
+      'er',
+      [
+        {l:'🔄 Try Again', c:'dan', f:'doScan()'},
+        {l:'Close',         c:'gst', f:'cpop()'}
+      ]
+    );
+  }
+}
+
+async function displayRealResults(data){
+  const devs    = data.devices;
+  const summary = data.summary;
+
+  log('  ✅ Connected to Python backend!','cg');
+  log(`\n  📡 Found ${devs.length} device(s) on your network\n`,'cg');
+
+  for(const d of devs){
+    log(`  ${d.is_me?'💻 YOU':'📱 Dev'}  ${d.ip.padEnd(18)}  ${d.mac}  OS: ${(d.os_info?.os||'Unknown').substring(0,22)}`,'ca');
+    await delay(120);
+  }
+
+  for(const d of devs){
+    await delay(150);
+    log('','');
+    log(`  ┌─ 📍 ${d.ip} — ${d.is_me?'YOUR MACHINE':'Network Device'}`,'cp');
+    log(`  │  💻 OS: ${d.os_info?.os||'Unknown'}  (TTL: ${d.os_info?.ttl||'—'})`,'cp');
+    log(`  │  📊 Risk Score: ${d.risk_score}/10 — ${d.risk_label}`,'cp');
+    if(d.open_ports && d.open_ports.length){
+      log(`  │  🚪 Open Ports: ${d.open_ports.length}`,'cy');
+      for(const p of d.open_ports){
+        const cl = p.cvss>=8?'cr':p.cvss>=5?'cy':'cg';
+        log(`  │    Port ${String(p.port).padEnd(6)} ${(p.service||'').padEnd(10)} CVSS:${p.cvss}`, cl);
+        await delay(40);
+      }
+    } else {
+      log(`  │  ✅ No risky ports found`,'cg');
+    }
+    log(`  └${'─'.repeat(44)}`,'cp');
+  }
+
+  log('','');
+  log(`  ✅ Devices   : ${summary.total_devices}`,'ca');
+  log(`  ✅ Vulns     : ${summary.total_vulns}`,'ca');
+  log(`  ✅ Critical  : ${summary.critical}`,'ca');
+  log(`  ✅ Risk Level: ${summary.risk_label}`,'ca');
+  log(`  ✅ PDF saved : ${data.report_file}`,'cg');
+  log(`  ✅ Alerts    : ${summary.alerts}`,'cg');
+  log('\n  🏆  ALL MODULES COMPLETE!','ca');
+  log(`  ${'═'.repeat(50)}`,'cb');
+
+  document.getElementById('sd').textContent = summary.total_devices;
+  document.getElementById('sv').textContent = summary.total_vulns;
+  document.getElementById('sc').textContent = summary.critical;
+  document.getElementById('sr').textContent = summary.risk_label;
+
+  buildResults(devs, summary);
+  buildAlerts(data.alerts||[]);
+  setstatus('✅ Scan complete!');
+  document.getElementById('rpbtn').disabled = false;
+  document.getElementById('tpbtn').disabled = false;
+  reportFile = data.report_file;
+  reportUrl  = data.report_url;
+  topoUrl    = data.topology_url;
+  scanDone();
+
+  // SUCCESS POPUP
+  popup('🎉','Scan Completed Successfully!',
+    `All 4 modules finished!\n\nDevices: ${summary.total_devices}  •  Vulnerabilities: ${summary.total_vulns}\nCritical: ${summary.critical}  •  Risk: ${summary.risk_label}\n\nPDF report ready: ${data.report_file}\n\nOpen PDF now?`,
+    'ok',
+    [
+      {l:'📄 Open PDF',   c:'suc', f:'openReport()'},
+      {l:'🗺️ View Map',   c:'pri', f:'openTopology()'},
+      {l:'Later',          c:'gst', f:'cpop()'}
+    ]
+  );
+}
+
+// DEMO SCAN (when backend not running)
+const VDEMO={
+  445:{n:'SMB',s:'CRITICAL',v:10,h:['Deploy WannaCry ransomware','EternalBlue exploit','Access files without auth'],f:['Block port 445','Disable SMBv1','Update Windows']},
+  3389:{n:'RDP',s:'CRITICAL',v:9.8,h:['Brute force password','BlueKeep exploit','Full desktop control'],f:['Disable RDP if unused','Use VPN+RDP','Enable NLA']},
+  135:{n:'RPC',s:'CRITICAL',v:9.8,h:['Remote code execution','Blaster worm exploit'],f:['Block port 135','Disable unused RPC']},
+  139:{n:'NetBIOS',s:'HIGH',v:8.1,h:['Enumerate users/shares','Null session exploit'],f:['Disable NetBIOS','Block 137-139']},
+  53:{n:'DNS',s:'LOW',v:2.5,h:['Cache poisoning'],f:['Update DNS','Enable DNSSEC']},
+};
+
+async function runDemo(auditor, rn){
+  const devs=[
+    {ip:'10.76.44.1',  mac:'a0:b1:c2:d3:e4:f5',me:false,os:'Network Device (Router)',ttl:64, ports:[53]},
+    {ip:'10.76.44.224',mac:'be:49:fa:ed:fd:4a',me:false,os:'Linux / Android',ttl:64,         ports:[53]},
+    {ip:'10.76.44.234',mac:'48:e7:da:4a:88:0f',me:true, os:'Windows',ttl:128,                ports:[445,135,3389,139]},
+  ];
+
+  log(`\n  📡 MODULE 1 — DEVICE DISCOVERY`,'cb');
+  setstatus('📡 Scanning network...');
+  await delay(900);
+  log(`\n  ✅ Found ${devs.length} device(s)\n`,'cg');
+  for(const d of devs){log(`  ${d.me?'💻 YOU':'📱 Dev'}  ${d.ip.padEnd(18)} ${d.mac}  OS: ${d.os}`,'ca');await delay(130);}
+  document.getElementById('sd').textContent=devs.length;
+
+  let allResults=[], tV=0, tC=0;
+
+  for(const d of devs){
+    await delay(200);
+    log('','');
+    log(`  ┌─ 📍 ${d.ip} — ${d.me?'YOUR MACHINE':'Network Device'}`,'cp');
+    log(`  │  💻 OS: ${d.os} (TTL: ${d.ttl}, Confidence: Medium)`,'cp');
+    log(`  │  🚪 Port Scan...`,'cw');
+    setstatus(`🚪 Scanning ${d.ip}...`);
+    await delay(600);
+
+    const oports=d.ports.map(p=>({port:p,...VDEMO[p]}));
+    const vulns=oports.filter(p=>p.v>=7);
+    const riskScore=Math.min(10,+(Math.min(2,oports.length*.4)+(vulns.length?((vulns.reduce((a,x)=>a+x.v,0)/vulns.length)/10)*7:0)).toFixed(1));
+    const riskLabel=riskScore>=8?'CRITICAL':riskScore>=6?'HIGH':riskScore>=4?'MEDIUM':riskScore>=2?'LOW':'MINIMAL';
+
+    if(oports.length){
+      for(const p of oports){const cl=p.v>=8?'cr':p.v>=5?'cy':'cg';log(`  │    Port ${String(p.port).padEnd(6)} ${(p.n||'').padEnd(12)} ${p.s} CVSS:${p.v}`,cl);await delay(60);}
+    }
+    log(`  │  ⚠️  Vulnerabilities: ${vulns.length}`,'cy');
+    for(const v of vulns){
+      const cl=v.v>=9?'cr':'cy';
+      log(`  │    ╔ Port ${v.port} — ${v.n} CVSS:${v.v}`,cl);
+      for(const h of v.h){log(`  │    ║  ✗ ${h}`,'cr');await delay(25);}
+      for(const f of v.f){log(`  │    ║  ✓ ${f}`,'cg');await delay(25);}
+      log(`  │    ╚${'═'.repeat(40)}`,cl);
+    }
+    log(`  │  📊 Risk Score: ${riskScore}/10 — ${riskLabel}`,'ca');
+    log(`  └${'─'.repeat(44)}`,'cp');
+
+    tV+=vulns.length; tC+=vulns.filter(v=>v.s==='CRITICAL').length;
+    allResults.push({ip:d.ip,mac:d.mac,is_me:d.me,os_info:{os:d.os,ttl:d.ttl},open_ports:oports,vulnerabilities:vulns,risk_score:riskScore,risk_label:riskLabel});
+  }
+
+  const netRisk=Math.max(...allResults.map(r=>r.risk_score));
+  const netLabel=netRisk>=8?'CRITICAL':netRisk>=6?'HIGH':netRisk>=4?'MEDIUM':'LOW';
+
+  await delay(200);
+  log('','');
+  log('  ┌─────────────────────────────────────────────┐','cb');
+  log('  │  📊  FINAL SUMMARY                          │','cb');
+  log('  └─────────────────────────────────────────────┘','cb');
+  log(`\n  Devices: ${devs.length}  Vulns: ${tV}  Critical: ${tC}  Risk: ${netLabel}`,'ca');
+
+  document.getElementById('sv').textContent=tV;
+  document.getElementById('sc').textContent=tC;
+  document.getElementById('sr').textContent=netLabel;
+
+  setstatus('📄 Generating PDF...');
+  log('\n  📄 MODULE 4 — Generating PDF Report...','cb');
+  await delay(700);
+  log(`  ✅ Report: ${rn}  (Run python launch.py to save real PDF)`,'cg');
+  log('\n  🏆  ALL MODULES COMPLETE! (DEMO MODE)','ca');
+  log('  💡 Run python launch.py as Administrator for real scan','cy');
+  log(`  ${'═'.repeat(50)}`,'cb');
+
+  buildResults(allResults,{total_devices:devs.length,total_vulns:tV,critical:tC,risk_label:netLabel});
+
+  // Demo alerts
+  const dAlerts=[
+    {type:'REMOTE_ACCESS_COMBO',severity:'CRITICAL',ip:'10.76.44.234',detail:'RDP + SMB both open — classic ransomware vector',recommendation:'Disable RDP and block SMB externally'},
+    {type:'HIGH_RISK_DEVICE',severity:'CRITICAL',ip:'10.76.44.234',detail:'Device risk score 9.5/10 — immediate action required',recommendation:'Close unnecessary ports immediately'},
+  ];
+  buildAlerts(dAlerts);
+
+  setstatus('✅ Demo complete!');
+  document.getElementById('rpbtn').disabled=false;
+  scanDone();
+
+  popup('🏆','Demo Scan Complete!',
+    `Modules finished in DEMO MODE.\n\nTo run a real scan:\npython launch.py (as Administrator)\n\nPDF requires real backend.`,
+    'ok',
+    [{l:'OK',c:'pri',f:'cpop()'}]
+  );
+}
+
+function riskColor(rl){
+  return rl==='CRITICAL'?'#FF453A':rl==='HIGH'?'#FF9F0A':rl==='MEDIUM'?'#FFD60A':rl==='LOW'?'#30D158':'#8E8E93';
+}
+function riskBg(rl){
+  return rl==='CRITICAL'?'rgba(255,69,58,.12)':rl==='HIGH'?'rgba(255,159,10,.1)':rl==='MEDIUM'?'rgba(255,214,10,.08)':'rgba(48,209,88,.08)';
+}
+
+function buildResults(devs, summary){
+  const netRc = riskColor(summary.risk_label);
+
+  // ── SUMMARY BANNER ─────────────────────────────────────────────────
+  let h = `
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+    <div style="background:rgba(0,122,255,.1);border:1px solid rgba(0,122,255,.25);border-radius:12px;padding:12px;text-align:center;border-top:2px solid #007AFF">
+      <div style="font-size:24px;font-weight:800;color:#007AFF;font-family:var(--d)">${summary.total_devices}</div>
+      <div style="font-size:9px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Devices</div>
+    </div>
+    <div style="background:rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.25);border-radius:12px;padding:12px;text-align:center;border-top:2px solid #FF9F0A">
+      <div style="font-size:24px;font-weight:800;color:#FF9F0A;font-family:var(--d)">${summary.total_vulns}</div>
+      <div style="font-size:9px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Vulns</div>
+    </div>
+    <div style="background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.25);border-radius:12px;padding:12px;text-align:center;border-top:2px solid #FF453A">
+      <div style="font-size:24px;font-weight:800;color:#FF453A;font-family:var(--d)">${summary.critical}</div>
+      <div style="font-size:9px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Critical</div>
+    </div>
+    <div style="background:${riskBg(summary.risk_label)};border:1px solid ${netRc}44;border-radius:12px;padding:12px;text-align:center;border-top:2px solid ${netRc}">
+      <div style="font-size:18px;font-weight:800;color:${netRc};font-family:var(--d);line-height:1.2">${summary.risk_label}</div>
+      <div style="font-size:9px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Risk Level</div>
+    </div>
+  </div>`;
+
+  // ── DEVICE CARDS ────────────────────────────────────────────────────
+  for(const r of devs){
+    const rl    = r.risk_label || 'MINIMAL';
+    const rc    = riskColor(rl);
+    const rbg   = riskBg(rl);
+    const ports = r.open_ports || [];
+    const vulns = r.vulnerabilities || [];
+    const os    = r.os_info?.os || 'Unknown';
+    const ttl   = r.os_info?.ttl || '—';
+    const osIcon= os.includes('Windows')?'🖥️':os.includes('Linux')||os.includes('Android')?'📱':os.includes('Router')||os.includes('Network')?'🌐':'💻';
+
+    h += `
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;margin-bottom:12px;overflow:hidden;border-left:3px solid ${rc}">
+
+      <!-- Device Header -->
+      <div style="padding:12px 14px;background:rgba(0,0,0,.3);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+            <span style="font-size:16px">${osIcon}</span>
+            <span style="font-family:var(--m);font-size:14px;font-weight:700;color:#5AC8FA">${r.ip}</span>
+            ${r.is_me ? `<span style="background:rgba(0,122,255,.2);color:#007AFF;border:1px solid rgba(0,122,255,.4);border-radius:99px;font-size:9px;font-weight:800;padding:2px 8px">◀ YOUR MACHINE</span>` : `<span style="background:rgba(255,255,255,.08);color:var(--t2);border:1px solid rgba(255,255,255,.12);border-radius:99px;font-size:9px;font-weight:700;padding:2px 8px">◉ DEVICE</span>`}
+          </div>
+          <div style="font-family:var(--m);font-size:10px;color:var(--t3);margin-bottom:3px">MAC: ${r.mac}</div>
+          <div style="font-size:10px;color:var(--t2)">OS: <strong style="color:var(--t1)">${os}</strong> &nbsp;&middot;&nbsp; TTL: <strong style="color:var(--t1)">${ttl}</strong></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="background:${rbg};border:1px solid ${rc}55;border-radius:10px;padding:8px 14px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:${rc};font-family:var(--d);line-height:1">${rl}</div>
+            <div style="font-size:10px;color:${rc};font-weight:600;margin-top:2px">${r.risk_score}/10</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="padding:8px 14px;border-right:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:8.5px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Open Ports</div>
+          <div style="font-size:15px;font-weight:800;color:${ports.length>0?'#FF9F0A':'#30D158'};font-family:var(--d)">${ports.length}</div>
+        </div>
+        <div style="padding:8px 14px;border-right:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:8.5px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Vulnerabilities</div>
+          <div style="font-size:15px;font-weight:800;color:${vulns.length>0?'#FF453A':'#30D158'};font-family:var(--d)">${vulns.length}</div>
+        </div>
+        <div style="padding:8px 14px">
+          <div style="font-size:8.5px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">OS Confidence</div>
+          <div style="font-size:11px;font-weight:700;color:var(--t1)">${r.os_info?.confidence||'Low'}</div>
+        </div>
+      </div>`;
+
+    // ── PORTS TABLE ──────────────────────────────────────────────────
+    if(ports.length){
+      h += `
+      <div style="padding:10px 14px 6px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:8px">🚪 Open Ports</div>
+        <div style="display:flex;flex-direction:column;gap:4px">`;
+      for(const p of ports){
+        const cv   = p.cvss || p.v || 0;
+        const prl  = cv>=9?'CRITICAL':cv>=7?'HIGH':cv>=4?'MEDIUM':'LOW';
+        const prc  = riskColor(prl);
+        const svc  = p.service || p.n || '';
+        const desc = p.desc || '';
+        h += `
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:7px 10px">
+            <div style="font-family:var(--m);font-size:13px;font-weight:800;color:#5AC8FA;width:38px;flex-shrink:0">${p.port}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:var(--t1)">${svc}</div>
+              <div style="font-size:9.5px;color:var(--t3);margin-top:1px">${desc}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <span style="font-size:8.5px;font-weight:800;color:${prc};background:${riskBg(prl)};border:1px solid ${prc}44;border-radius:99px;padding:2px 8px">${prl}</span>
+              <span style="font-size:9px;font-weight:700;color:${prc};font-family:var(--m)">${cv}</span>
+            </div>
+          </div>`;
+      }
+      h += `</div></div>`;
+    } else {
+      h += `<div style="padding:10px 14px;font-size:11px;color:#30D158;display:flex;align-items:center;gap:6px"><span>✅</span> No risky open ports detected</div>`;
+    }
+
+    // ── VULNERABILITIES ──────────────────────────────────────────────
+    if(vulns.length){
+      h += `
+      <div style="padding:4px 14px 12px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:8px;margin-top:6px">⚠️ Vulnerability Details</div>`;
+      for(const v of vulns){
+        const cv  = v.cvss_score || v.v || 0;
+        const sev = v.severity || (cv>=9?'CRITICAL':cv>=7?'HIGH':'MEDIUM');
+        const vc  = riskColor(sev);
+        const vbg = sev==='CRITICAL'?'rgba(255,69,58,.06)':sev==='HIGH'?'rgba(255,159,10,.06)':'rgba(255,214,10,.05)';
+        const vbd = sev==='CRITICAL'?'rgba(255,69,58,.2)':sev==='HIGH'?'rgba(255,159,10,.2)':'rgba(255,214,10,.15)';
+        h += `
+        <div style="background:${vbg};border:1px solid ${vbd};border-radius:10px;margin-bottom:8px;overflow:hidden">
+          <!-- Vuln Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:${vbg};border-bottom:1px solid ${vbd}">
+            <div style="font-size:11px;font-weight:700;color:${vc}">Port ${v.port} — ${v.name || v.n || ''}</div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <span style="font-size:8.5px;font-weight:800;color:${vc};background:${riskBg(sev)};border:1px solid ${vc}44;border-radius:99px;padding:2px 8px">${sev}</span>
+              <span style="font-family:var(--m);font-size:9px;font-weight:700;color:${vc}">CVSS ${cv}/10</span>
+            </div>
+          </div>
+          <!-- Vuln Body — 2 columns -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+            <div style="padding:10px 12px;border-right:1px solid ${vbd}">
+              <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#FF6B6B;margin-bottom:6px">💀 Attacker Can</div>
+              ${(v.hacker_can||v.h||[]).map(x=>`<div style="font-size:10px;color:rgba(255,150,150,.85);padding:2px 0;display:flex;gap:5px;line-height:1.4"><span style="flex-shrink:0;color:#FF453A">✗</span><span>${x}</span></div>`).join('')}
+            </div>
+            <div style="padding:10px 12px">
+              <div style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#5DDE7A;margin-bottom:6px">🛡️ How to Fix</div>
+              ${(v.fix||v.f||[]).map(x=>`<div style="font-size:10px;color:rgba(150,230,160,.85);padding:2px 0;display:flex;gap:5px;line-height:1.4"><span style="flex-shrink:0;color:#30D158">✓</span><span>${x}</span></div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+      }
+      h += `</div>`;
+    }
+
+    h += `</div>`; // close dcard
+  }
+
+  document.getElementById('rbody').innerHTML = h;
+}
+
+function buildAlerts(alerts){
+  if(!alerts||!alerts.length){
+    document.getElementById('abody').innerHTML='<div style="text-align:center;padding:40px;color:var(--green)"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-size:12px">No threats detected</div></div>';
+    return;
+  }
+  let h=`<div style="padding:0 0 10px;font-size:11px;color:var(--t2);font-weight:600">🔎 ${alerts.length} threat pattern(s) detected</div>`;
+  for(const a of alerts){
+    const isCrit=a.severity==='CRITICAL';
+    h+=`<div class="alert-card ${isCrit?'':'warn'}">
+      <div class="alert-title">${isCrit?'🔴':'🟠'} ${a.type.replace(/_/g,' ')} — ${a.ip}</div>
+      <div class="alert-detail">${a.detail}</div>
+      <div class="alert-rec">✓ ${a.recommendation}</div>
+    </div>`;
+  }
+  document.getElementById('abody').innerHTML=h;
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function scanDone(){
+  scanRunning=false;
+  document.getElementById('scanbtn').disabled=false;
+  document.getElementById('btxt').textContent='Start Scan';
+  document.getElementById('bico').textContent='▶';
+  document.getElementById('pw').classList.remove('on');
+  document.getElementById('ldot').style.opacity='.3';
+}
+
+function openReport(){
+  if(reportUrl){
+    // REAL PDF via HTTP server — no ERR_FILE_NOT_FOUND
+    window.open(reportUrl,'_blank');
+    popup('📄','PDF Opened!',`${reportFile}\n\nOpened in new tab via HTTP server.\n(Keep launch.py running!)`, 'pd',[{l:'OK',c:'pri',f:'cpop()'}]);
+  } else {
+    popup('📄','PDF Report',
+      `${reportFile||'report.pdf'}\n\nTo open PDF directly:\n1. Run python launch.py as Administrator\n2. The PDF will open in browser automatically`,
+      'pd',[{l:'OK',c:'pri',f:'cpop()'}]);
+  }
+}
+
+function openTopology(){
+  const url = topoUrl || `${API}/topology`;
+  window.open(url,'_blank');
+}
+
+function resetScan(){
+  if(scanRunning)return;
+  document.getElementById('wlc').style.display='block';
+  document.getElementById('tlog').style.display='none';
+  document.getElementById('tlog').innerHTML='';
+  document.getElementById('rbody').innerHTML='<div style="text-align:center;padding:44px;color:var(--t3)"><div style="font-size:32px;margin-bottom:9px">📊</div><div style="font-size:12.5px;font-weight:500">Run a scan to see results</div></div>';
+  document.getElementById('abody').innerHTML='<div style="text-align:center;padding:44px;color:var(--t3)"><div style="font-size:32px;margin-bottom:9px">🔎</div><div style="font-size:12.5px;font-weight:500">Attack detection results appear here</div></div>';
+  setstatus('Enter name and click Start Scan');
+  document.getElementById('rpbtn').disabled=true;
+  document.getElementById('tpbtn').disabled=true;
+  ['sd','sv','sc','sr'].forEach(id=>document.getElementById(id).textContent='—');
+  reportFile=null;reportUrl=null;topoUrl=null;
+  stab('terminal',document.querySelectorAll('.tab')[0]);
+}
+</script>
+
+<!-- MATRIX -->
+<script>
+const cv=document.getElementById('matrix'),cx=cv.getContext('2d');
+const CH='アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*<>[]{}|/\\';
+const FS=13;let cols,drops,gs;
+function iM(){cv.width=innerWidth;cv.height=innerHeight;cols=Math.floor(cv.width/FS);drops=Array.from({length:cols},()=>Math.random()*-80);gs=new Set();for(let i=0;i<cols;i++)if(Math.random()<.05)gs.add(i);}
+function dM(){
+  cx.fillStyle='rgba(0,0,0,0.047)';
+  cx.fillRect(0,0,cv.width,cv.height);
+  cx.font=FS+'px monospace';
+  for(let i=0;i<drops.length;i++){
+    const ch=CH[Math.floor(Math.random()*CH.length)];
+    const x=i*FS, y=drops[i]*FS;
+    if(gs.has(i)){
+      cx.shadowBlur=10;cx.shadowColor='#00ff41';
+      cx.fillStyle='#fff';cx.fillText(ch,x,y);cx.shadowBlur=0;
+    } else {
+      cx.fillStyle=Math.random()>.93?'#58a6ff':Math.random()>.7?'#00d442':'#009930';
+      cx.fillText(ch,x,y);
+    }
+    if(y>cv.height&&Math.random()>.975)drops[i]=0;
+    drops[i]+=0.5;
+  }
+}
+iM();
+window.addEventListener('resize',iM);
+setInterval(dM,33);
+</script>
+</body>
+</html>
