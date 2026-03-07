@@ -283,11 +283,27 @@ def _parse_arp_table():
     return devices
 
 
+def is_termux():
+    """Detect Android Termux environment."""
+    import os as _os
+    return ("com.termux" in _os.environ.get("PREFIX", "") or
+            "com.termux" in _os.environ.get("HOME", "") or
+            _os.path.exists("/data/data/com.termux"))
+
+
 # ── NETWORK SCANNER ───────────────────────────────────────────────────────────
 def scan_network():
     local_ip = get_real_local_ip()
     print(f"  [SCANNER] Platform  : {platform.system()} {platform.release()}")
     print(f"  [SCANNER] Local IP  : {local_ip}")
+
+    # ── Termux/Android — no root so skip ARP, just scan local device ──
+    if is_termux():
+        print("  [SCANNER] Android Termux detected — scanning local device only")
+        print("  [SCANNER] (ARP scan needs root — not available on unrooted Android)")
+        devices = [{"ip": local_ip, "mac": "00:00:00:00:00:00"}]
+        print(f"  [SCANNER] Final: {[d['ip'] for d in devices]}")
+        return devices, local_ip
 
     if local_ip.startswith("169.254"):
         print("  [SCANNER] *** WARNING: APIPA — not properly connected to network! ***")

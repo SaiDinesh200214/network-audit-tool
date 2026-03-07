@@ -197,8 +197,17 @@ def run_scan(body):
     }
 
 
+def is_termux():
+    """Detect if running inside Termux on Android."""
+    return ("com.termux" in os.environ.get("PREFIX", "") or
+            "com.termux" in os.environ.get("HOME", "") or
+            os.path.exists("/data/data/com.termux"))
+
+
 def check_admin():
-    """Check admin/root on any platform."""
+    """Check admin/root — Termux skips root check and runs in limited mode."""
+    if is_termux():
+        return True   # Android Termux — skip root, run with available features
     if os.name == "nt":  # Windows
         try:
             import ctypes
@@ -282,7 +291,11 @@ def main():
         relaunch_as_admin()
         return
 
-    print(f"\n  Admin mode : ✅ YES")
+    if is_termux():
+        print(f"\n  Mode       : 📱 Android Termux (limited — no ARP scan)")
+        print(f"  Available  : Port scan, Vuln analysis, PDF, Risk scoring")
+    else:
+        print(f"\n  Admin mode : ✅ YES")
 
     # ── Check if already running ────────────────────────────────────────
     if not is_port_free(PORT):
