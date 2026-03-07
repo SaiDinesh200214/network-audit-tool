@@ -1,47 +1,61 @@
 #!/bin/bash
 # ============================================================
-#  NetAudit Pro — Linux / macOS Launcher
-#  Double-click or run:  bash RUN_ME.sh
-#  Automatically requests sudo for ARP scanning
+#  NetAudit Pro — Linux/macOS Launcher
+#  Auto-installs dependencies + requests sudo
 # ============================================================
 
-# Go to the folder where this script lives
 cd "$(dirname "$0")"
 
 echo ""
-echo "============================================"
-echo "  🛡️  NetAudit Pro — Network Audit Tool"
-echo "  By SaiDinesh Andekar"
-echo "============================================"
+echo "  ============================================================"
+echo "   NetAudit Pro — Home Network Security Audit Tool"
+echo "  ============================================================"
 echo ""
 
 # Find Python
 PYTHON=""
-if command -v python3 &>/dev/null; then
-    PYTHON="python3"
-elif command -v python &>/dev/null; then
-    PYTHON="python"
-fi
+command -v python3 &>/dev/null && PYTHON="python3"
+command -v python  &>/dev/null && [ -z "$PYTHON" ] && PYTHON="python"
 
 if [ -z "$PYTHON" ]; then
-    echo "  ❌ Python not found!"
-    echo "  Install Python:"
-    echo ""
-    echo "  Ubuntu/Debian:  sudo apt install python3 python3-pip"
-    echo "  macOS:          brew install python3"
-    echo "  Or visit:       https://python.org"
-    echo ""
-    read -p "  Press Enter to exit..."
+    echo "  ERROR: Python not found!"
+    echo "  Install with: sudo apt install python3"
     exit 1
 fi
 
-# Check if already root
-if [ "$EUID" -eq 0 ]; then
-    echo "  ✅ Running as root"
-    $PYTHON launch.py
-else
-    echo "  🔐 Root required for ARP network scanning."
-    echo "  Requesting sudo — enter your password:"
-    echo ""
+# ── AUTO INSTALL DEPENDENCIES ────────────────────────────
+echo "  Checking dependencies..."
+echo ""
+
+install_pkg() {
+    $PYTHON -c "import $1" &>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "  Installing $2..."
+        if [ "$EUID" -eq 0 ]; then
+            pip3 install $2 --break-system-packages --quiet 2>/dev/null || \
+            pip3 install $2 --quiet 2>/dev/null || \
+            $PYTHON -m pip install $2 --break-system-packages --quiet
+        else
+            sudo pip3 install $2 --break-system-packages --quiet 2>/dev/null || \
+            pip3 install $2 --quiet 2>/dev/null
+        fi
+        echo "  $2 installed!"
+    fi
+}
+
+install_pkg "reportlab" "reportlab"
+install_pkg "scapy"     "scapy"
+install_pkg "PIL"       "pillow"
+
+echo ""
+echo "  All dependencies ready!"
+echo "  ============================================================"
+echo ""
+
+# ── CHECK ROOT ───────────────────────────────────────────
+if [ "$EUID" -ne 0 ]; then
+    echo "  Requesting root for ARP network scanning..."
     sudo $PYTHON launch.py
+else
+    $PYTHON launch.py
 fi
