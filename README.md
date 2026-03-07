@@ -8,7 +8,7 @@
 [![Linux](https://img.shields.io/badge/Linux-✅-FCC624?style=flat-square&logo=linux&logoColor=black)](https://github.com/SaiDinesh200214)
 [![macOS](https://img.shields.io/badge/macOS-✅-000000?style=flat-square&logo=apple)](https://github.com/SaiDinesh200214)
 [![Android](https://img.shields.io/badge/Android-✅-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/SaiDinesh200214)
-[![Version](https://img.shields.io/badge/Version-2.3-brightgreen?style=flat-square)](https://github.com/SaiDinesh200214)
+[![Version](https://img.shields.io/badge/Version-2.4-brightgreen?style=flat-square)](https://github.com/SaiDinesh200214)
 [![Author](https://img.shields.io/badge/Author-SaiDinesh%20Andekar-purple?style=flat-square)](https://github.com/SaiDinesh200214)
 
 **Scan your network. Find vulnerabilities. Generate professional PDF reports.**  
@@ -75,11 +75,25 @@ UAC popup appears → click **Yes** → browser opens automatically ✅
 ### 🐧 Linux (Ubuntu / Kali / Debian)
 ```bash
 sudo apt update && sudo apt install python3 python3-pip git -y
+```
+
+> ⚠️ **Kali Linux / Ubuntu 23+** blocks normal pip install. Use this instead:
+```bash
+sudo pip3 install scapy reportlab --break-system-packages
+```
+
+> ✅ **Ubuntu 22 and older** use normal pip:
+```bash
 pip3 install scapy reportlab
+```
+
+```bash
 git clone https://github.com/SaiDinesh200214/network-audit-tool
 cd network-audit-tool
-bash RUN_ME.sh
+sudo bash RUN_ME.sh
 ```
+
+> ⚠️ Must use `sudo` on Linux — ARP scanning requires root privileges.
 
 ---
 
@@ -194,8 +208,11 @@ network-audit-tool/
 | Problem | Fix |
 |---------|-----|
 | No devices found | Use launcher scripts — admin/root required for ARP |
-| `scapy` not found | `pip install scapy` |
-| `reportlab` not found | `pip install reportlab` |
+| `scapy` not found (Windows) | `pip install scapy` |
+| `reportlab` not found (Windows) | `pip install reportlab` |
+| `externally-managed-environment` on Kali/Linux | `sudo pip3 install scapy reportlab --break-system-packages` |
+| `No module named reportlab` on Linux | `sudo pip3 install reportlab --break-system-packages` |
+| Permission denied on Linux | Always use `sudo python3 main.py` or `sudo bash RUN_ME.sh` |
 | Android: pillow fails | `pkg install libjpeg-turbo libpng libtiff -y` then `pip install pillow` |
 | Android: sudo not found | Normal — app runs without root in limited mode |
 | Phone can't connect to PC | Open port 8765 in firewall (see above) |
@@ -206,7 +223,12 @@ network-audit-tool/
 
 ## 📋 Changelog
 
-### v2.3 (Latest)
+### v2.4 (Latest)
+- ✅ Fixed Linux/Kali pip install — added `--break-system-packages` instructions
+- ✅ Updated troubleshooting for Kali Linux externally-managed-environment error
+- ✅ Tested and verified on Kali Linux VM
+
+### v2.3
 - ✅ **Stunning CLI redesign** — cyan ASCII art banner, colored output, animated spinners
 - ✅ Auto-fit boxes using terminal width detection — no more broken borders
 - ✅ Color-coded risk scores with visual progress bar per device
