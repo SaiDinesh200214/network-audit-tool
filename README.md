@@ -7,11 +7,12 @@
 [![Windows](https://img.shields.io/badge/Windows-✅-0078D6?style=flat-square&logo=windows)](https://github.com/SaiDinesh200214)
 [![Linux](https://img.shields.io/badge/Linux-✅-FCC624?style=flat-square&logo=linux&logoColor=black)](https://github.com/SaiDinesh200214)
 [![macOS](https://img.shields.io/badge/macOS-✅-000000?style=flat-square&logo=apple)](https://github.com/SaiDinesh200214)
-[![Version](https://img.shields.io/badge/Version-2.1-brightgreen?style=flat-square)](https://github.com/SaiDinesh200214)
+[![Android](https://img.shields.io/badge/Android-✅-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/SaiDinesh200214)
+[![Version](https://img.shields.io/badge/Version-2.3-brightgreen?style=flat-square)](https://github.com/SaiDinesh200214)
 [![Author](https://img.shields.io/badge/Author-SaiDinesh%20Andekar-purple?style=flat-square)](https://github.com/SaiDinesh200214)
 
 **Scan your network. Find vulnerabilities. Generate professional PDF reports.**  
-*Built entirely in Python. Runs on Windows, Linux, and macOS.*
+*Built entirely in Python. Runs on Windows, Linux, macOS and Android (Termux).*
 
 </div>
 
@@ -39,55 +40,99 @@
 | **Windows 10/11** | ✅ Full | Double-click `RUN_ME.bat` |
 | **Linux** (Ubuntu, Kali, Debian...) | ✅ Full | `bash RUN_ME.sh` |
 | **macOS** | ✅ Full | `bash RUN_ME.sh` |
+| **Android** (Termux) | ✅ Limited | `python launch.py` |
 
-> **ARP scanning requires admin/root on all platforms.** The launchers handle this automatically.
+> **ARP scanning requires admin/root** on Windows/Linux/macOS — launchers handle this automatically.  
+> **Android (Termux)** runs in limited mode — port scan + vuln analysis + PDF work, ARP needs root.
 
 ---
 
 ## 🚀 Installation
 
-### Step 1 — Install Python
-- **Windows:** [python.org](https://python.org) → ✅ check **"Add Python to PATH"**
-- **Linux:** `sudo apt install python3 python3-pip`
-- **macOS:** `brew install python3`
+### 🪟 Windows
+**Step 1 — Install Python**  
+Download from [python.org](https://python.org) → ✅ check **"Add Python to PATH"**
 
-### Step 2 — Install dependencies
+**Step 2 — Install dependencies**
 ```bash
 pip install scapy reportlab
 ```
-> Linux/macOS: `pip3 install scapy reportlab`
 
-### Step 3 — Download project
+**Step 3 — Download project**
 ```bash
 git clone https://github.com/SaiDinesh200214/network-audit-tool
 cd network-audit-tool
 ```
 
-### Step 4 — Run
-
-**Windows** — Just double-click:
+**Step 4 — Run (just double-click!)**
 ```
 RUN_ME.bat
 ```
-
-**Linux / macOS** — In terminal:
-```bash
-bash RUN_ME.sh
-```
-
-Browser opens at `http://localhost:8765` automatically. Enter your name → click **Start Scan**.
+UAC popup appears → click **Yes** → browser opens automatically ✅
 
 ---
 
-## 📱 Access from Phone / Tablet
+### 🐧 Linux (Ubuntu / Kali / Debian)
+```bash
+sudo apt update && sudo apt install python3 python3-pip git -y
+pip3 install scapy reportlab
+git clone https://github.com/SaiDinesh200214/network-audit-tool
+cd network-audit-tool
+bash RUN_ME.sh
+```
 
-Your phone can view the results live while scan runs on your PC/Mac:
+---
 
-1. Phone and computer must be on **same WiFi**
-2. Find your computer's IP:
-   - **Windows:** run `ipconfig` → find IPv4 Address
-   - **Linux/macOS:** run `ip addr` or `ifconfig`
-3. Open phone browser: `http://YOUR_IP:8765`
+### 🍎 macOS
+```bash
+brew install python3
+pip3 install scapy reportlab
+git clone https://github.com/SaiDinesh200214/network-audit-tool
+cd network-audit-tool
+bash RUN_ME.sh
+```
+
+---
+
+### 📱 Android (Termux)
+
+**Step 1 — Install Termux**  
+Download from [F-Droid](https://f-droid.org/packages/com.termux/) ← NOT Play Store
+
+**Step 2 — Setup**
+```bash
+pkg update && pkg upgrade -y
+pkg install python git clang libjpeg-turbo libpng libtiff -y
+pip install pillow reportlab
+```
+
+**Step 3 — Clone and run**
+```bash
+git clone https://github.com/SaiDinesh200214/network-audit-tool
+cd network-audit-tool
+python launch.py
+```
+
+**Step 4 — Open in browser**  
+Termux will show:
+```
+📱 OPEN THIS URL IN YOUR PHONE BROWSER:
+     http://localhost:8765/gui.html
+```
+Just open that URL in Chrome/Firefox on your phone ✅
+
+> ⚠️ Android limitations: ARP device discovery needs root. Port scanning, vulnerability analysis, risk scoring and PDF reports all work without root.
+
+---
+
+## 📱 View Results from Any Phone/Tablet
+
+No install needed on phone — just view from PC scan:
+
+1. PC and phone on **same WiFi**
+2. **Windows:** run `ipconfig` → find IPv4 Address  
+   **Linux/macOS:** run `ip addr`
+3. Open phone browser: `http://YOUR_PC_IP:8765`
 
 Allow firewall if phone can't connect:
 
@@ -108,7 +153,7 @@ sudo ufw allow 8765/tcp
 network-audit-tool/
 │
 ├── 🪟 RUN_ME.bat          ← Windows launcher (double-click)
-├── 🐧 RUN_ME.sh           ← Linux/macOS launcher
+├── 🐧 RUN_ME.sh           ← Linux/macOS launcher (auto sudo)
 ├── RUN_ME.vbs             ← Windows silent launcher
 │
 ├── launch.py              ← Web server + orchestrator
@@ -123,6 +168,9 @@ network-audit-tool/
 ├── topology.html          ← Auto-generated after scan
 │
 └── scan_logs/             ← Auto-created on first scan
+    ├── scan_YYYYMMDD.log
+    ├── scan_YYYYMMDD.json
+    └── alerts_YYYYMMDD.json
 ```
 
 ---
@@ -132,11 +180,11 @@ network-audit-tool/
 | Component | Technology |
 |-----------|-----------|
 | Backend | Python 3.8+ |
-| Device Discovery | Scapy ARP + `ping` + `arp`/`ip neigh` |
+| Device Discovery | Scapy ARP + `ping` + `arp` / `ip neigh` |
 | Port Scanning | Python `socket` (50 concurrent threads) |
-| PDF Reports | ReportLab |
+| PDF Reports | ReportLab + Pillow |
 | Network Map | HTML5 Canvas (offline, no CDN) |
-| Frontend | Vanilla HTML/CSS/JS |
+| Frontend | Vanilla HTML/CSS/JS (dark theme) |
 | Web Server | Python `http.server` |
 
 ---
@@ -145,34 +193,65 @@ network-audit-tool/
 
 | Problem | Fix |
 |---------|-----|
-| No devices found | Make sure you're running with admin/root (use the launcher scripts) |
+| No devices found | Use launcher scripts — admin/root required for ARP |
 | `scapy` not found | `pip install scapy` |
 | `reportlab` not found | `pip install reportlab` |
-| Linux: permission denied | Run `bash RUN_ME.sh` (it uses sudo automatically) |
-| macOS: permission denied | Run `bash RUN_ME.sh` (it uses sudo automatically) |
-| Phone can't connect | Open port 8765 in firewall (see above) |
-| Browser doesn't open | Go to `http://localhost:8765` manually |
+| Android: pillow fails | `pkg install libjpeg-turbo libpng libtiff -y` then `pip install pillow` |
+| Android: sudo not found | Normal — app runs without root in limited mode |
+| Phone can't connect to PC | Open port 8765 in firewall (see above) |
+| Browser doesn't open | Go to `http://localhost:8765/gui.html` manually |
+| Topology map blank | Delete `topology.html` and run a new scan |
 
 ---
 
 ## 📋 Changelog
 
-### v2.1 (Latest)
-- ✅ Full cross-platform support: Windows, Linux, macOS
-- ✅ Added `RUN_ME.sh` for Linux/macOS (auto sudo)
-- ✅ `scanner.py` now uses `ip neigh`, `ifconfig`, `ip addr` on Linux/Mac
-- ✅ Fixed MAC address format differences (Windows dashes vs Linux colons)
+### v2.3 (Latest)
+- ✅ **Stunning CLI redesign** — cyan ASCII art banner, colored output, animated spinners
+- ✅ Auto-fit boxes using terminal width detection — no more broken borders
+- ✅ Color-coded risk scores with visual progress bar per device
+- ✅ Animated progress bar for PDF generation
+- ✅ Android Termux support — runs without root
+- ✅ Auto-detects Termux environment, skips sudo requirement
+- ✅ Shows URL clearly in Termux instead of trying to open browser
+- ✅ Scanner skips ARP on Android, scans local device
+
+### v2.2
+- ✅ Termux root check bypass
+- ✅ is_termux() detection added to launch.py and scanner.py
+
+### v2.1
+- ✅ Full cross-platform: Windows, Linux, macOS
+- ✅ Added `RUN_ME.sh` for Linux/macOS
+- ✅ Fixed MAC address format (Windows dashes vs Linux colons)
+- ✅ Added `ip neigh`, `ifconfig`, `ip addr` support
 
 ### v2.0
+- ✅ Fixed PDF crash (hexToDecimal)
 - ✅ Fixed MAC address splitting in PDF
-- ✅ Fixed PDF crash (hexToDecimal error)
 - ✅ Fixed text truncation in vulnerability table
-- ✅ Fixed security bug (new Function → safe handler)
-- ✅ Added `RUN_ME.bat` — no more manual CMD on Windows
+- ✅ Fixed XSS security bug (new Function → safe handler)
+- ✅ Added `RUN_ME.bat` — no more manual CMD
 - ✅ Auto UAC elevation on Windows
 
 ### v1.0
-- Initial release
+- 🚀 Initial release
+
+---
+
+## 📜 License & Copyright
+
+Copyright © 2026 **SaiDinesh Andekar**. All rights reserved.
+
+This project is licensed under the **MIT License with Attribution**.
+
+- ✅ You are free to use, modify, and distribute this software
+- ✅ You must give **clear credit** to SaiDinesh Andekar as the original author
+- ✅ You must include a link to the original repository
+- ❌ You may **NOT** claim this as your own original work
+- ❌ You may **NOT** remove copyright notices from any files
+
+See the [LICENSE](./LICENSE) file for full terms.
 
 ---
 
@@ -180,8 +259,9 @@ network-audit-tool/
 
 For **educational purposes** and **authorized auditing only**.
 
-- ✅ Only scan networks you **own** or have **explicit permission** to test
-- ❌ Unauthorized network scanning is **illegal**
+- ✅ Only scan networks you **own** or have **explicit written permission** to test
+- ❌ Unauthorized network scanning is **illegal** in most countries
+- ❌ Do not use on public networks, school/college networks without permission
 
 ---
 
@@ -194,5 +274,5 @@ For **educational purposes** and **authorized auditing only**.
 ---
 
 <div align="center">
-<sub>Built with 🐍 Python · Windows · Linux · macOS · For learning cybersecurity</sub>
+<sub>Built with 🐍 Python · Windows · Linux · macOS · Android · For learning cybersecurity</sub>
 </div>
