@@ -332,10 +332,23 @@ def main():
 
     # ── Open browser ────────────────────────────────────────────────────
     url = f"http://localhost:{PORT}/gui.html"
-    webbrowser.open(url)
-    print(f"\n  ✅ GUI opened: {url}")
-    print(f"\n  📌 KEEP THIS WINDOW OPEN while using NetAudit Pro!")
-    print(f"  📌 Press Ctrl+C to stop.\n")
+
+    if is_termux():
+        # Termux — can't auto-open browser, print clear instructions
+        print(f"\n  {'='*54}")
+        print(f"  📱 OPEN THIS URL IN YOUR PHONE BROWSER:")
+        print(f"")
+        print(f"       http://localhost:{PORT}/gui.html")
+        print(f"")
+        print(f"  {'='*54}")
+        print(f"  📌 KEEP TERMUX OPEN while using the app!")
+        print(f"  📌 Press Ctrl+C to stop.\n")
+    else:
+        webbrowser.open(url)
+        print(f"\n  ✅ GUI opened: {url}")
+        print(f"\n  📌 KEEP THIS WINDOW OPEN while using NetAudit Pro!")
+        print(f"  📌 Press Ctrl+C to stop.\n")
+
     print("=" * 60)
 
     try:
